@@ -25,7 +25,7 @@ func (tx *Tx) Register(username, password, email string) (*facechat.User, *facec
 	}
 
 	_, err = tx.tx.Exec(
-		"INSERT INTO users(id, name, pass, email) VALUES (?, ?)",
+		"INSERT INTO users(id, name, pass, email) VALUES ($1, $2)",
 		tx.UserID, username, hashed, email,
 	)
 	if err != nil {
@@ -48,7 +48,7 @@ func (tx *Tx) Register(username, password, email string) (*facechat.User, *facec
 func (tx *Tx) Login(email, password string) (*facechat.Session, error) {
 	var hashed []byte
 
-	row := tx.tx.QueryRow("SELECT pass, id FROM users WHERE email = ?", email)
+	row := tx.tx.QueryRow("SELECT pass, id FROM users WHERE email = $1", email)
 	err := row.Scan(&hashed, &tx.UserID)
 	if err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ func (tx *Tx) insertSession() (*facechat.Session, error) {
 
 func (tx *Tx) AddAccount(acc facechat.Account) error {
 	_, err := tx.tx.Exec(
-		"INSERT INTO accounts VALUES($1, $2, $3, $4, $5)",
+		"INSERT INTO accounts VALUES ($1, $2, $3, $4, $5)",
 		acc.Service, acc.Name, acc.URL, acc.Data, acc.UserID,
 	)
 	return errors.Wrap(err, "failed to add account")
