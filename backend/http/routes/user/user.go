@@ -24,27 +24,40 @@ func Mount(db *db.DB) http.Handler {
 	return r
 }
 
+type UserResponse struct {
+	*facechat.User
+	Accounts []facechat.Account `json:"accounts"`
+}
+
 func user(w http.ResponseWriter, r *http.Request) {
 	var user = chi.URLParam(r, "user")
 
 	var s = auth.Session(r)
-	var u *facechat.User
+	var u = UserResponse{}
 
 	err := tx.RAcquire(r, func(tx *db.ReadTx) (err error) {
 		switch user {
 		case "@me":
-			u, err = tx.User(s.UserID)
+			u.User, err = tx.User(s.UserID)
 		default:
 			i, err := strconv.ParseUint(user, 10, 64)
 			if err != nil {
-				return errors.Wrap(err, "Failed to parse ID")
+				return errors.Wrap(err, "failed to parse ID")
 			}
 
-			u, err = tx.User(facechat.ID(i))
+			u.User, err = tx.User(facechat.ID(i))
 		}
 
-		err = errors.Wrap(err, "failed to get user")
-		return
+		if err != nil {
+			err = errors.Wrap(err, "failed to get user")
+			return
+		}
+
+		u.Accounts, err = tx.UserAccounts(u.User.ID)
+		if err != nil {
+			return errors.Wrap(err, "failed to get accounts")
+		}
+		return nil
 	})
 
 	if err != nil {

@@ -110,10 +110,14 @@ func (tx *ReadTx) Session(token string) (*facechat.Session, error) {
 
 func (tx *ReadTx) User(id facechat.ID) (*facechat.User, error) {
 	var user facechat.User
-	row := tx.tx.QueryRowx("SELECT * FROM users WHERE id = ?", id)
-	if err := row.StructScan(&user); err != nil {
+
+	err := tx.tx.
+		QueryRowx("SELECT * FROM users WHERE id = ? LIMIT 1", id).
+		StructScan(&user)
+	if err != nil {
 		return nil, errors.Wrap(err, "error getting user")
 	}
+
 	return &user, nil
 }
 
