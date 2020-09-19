@@ -1,6 +1,7 @@
 package httperr
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -20,9 +21,14 @@ func ErrCode(err error) int {
 	return 500
 }
 
-// WriteErr writes the error code.
-func WriteErr(w http.ResponseWriter, err error) {
+type JSONError struct {
+	Error string `json:"error"`
+}
+
+// WriteErr writes the error code into the status and body.
+func WriteErr(w http.ResponseWriter, err error) error {
 	w.WriteHeader(ErrCode(err))
+	return json.NewEncoder(w).Encode(JSONError{err.Error()})
 }
 
 type basicError struct {

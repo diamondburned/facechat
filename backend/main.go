@@ -33,4 +33,5 @@ func main() {
 	if err != nil {
 		log.Fatalln("Failed to connect to PostgreSQL:", err)
 	}
+	_ = d
 }
