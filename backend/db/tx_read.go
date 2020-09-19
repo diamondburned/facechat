@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"strings"
+	"time"
 
 	"github.com/diamondburned/facechat/backend/facechat"
 	"github.com/jmoiron/sqlx"
@@ -15,9 +16,24 @@ type ReadTx struct {
 }
 
 func (tx *ReadTx) Session(token string) (*facechat.Session, error) {
-	// TODO: check session
-	// TODO: check expiry
-	return nil, errors.New("unimplemented")
+	var s = facechat.Session{
+		Token: token,
+	}
+
+	r := tx.tx.QueryRowx(
+		"SELECT (user_id, expiry) FROM sessions WHERE token = $1",
+		token,
+	)
+	if err := r.StructScan(&s); err != nil {
+		// return nil, errors.Wrap(err, "failed to scan session")
+		return nil, facechat.ErrUnknownSession
+	}
+
+	if s.Expiry.Before(time.Now()) {
+		return nil, facechat.ErrUnknownSession
+	}
+
+	return &s, nil
 }
 
 // IsBlocked returns true if target blocked self.

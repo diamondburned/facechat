@@ -88,12 +88,19 @@ func (tx *Tx) insertSession() (*facechat.Session, error) {
 	}
 
 	_, err = tx.tx.Exec(
-		"INSERT INTO users(user_id, token, expiry) VALUES (?, ?, ?)",
+		"INSERT INTO sessions VALUES ($1, $2, $3)",
 		ses.UserID, ses.Token, ses.Expiry,
 	)
 	if err != nil {
 		return nil, err
 	}
+
+	// Cleanup
+	_, err = tx.tx.Exec("DELETE FROM sessions WHERE expiry < $1", time.Now())
+	if err != nil {
+		return nil, err
+	}
+
 	return &ses, nil
 }
 

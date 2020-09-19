@@ -76,6 +76,8 @@ type Session struct {
 	Expiry time.Time `json:"-" db:"expiry"`
 }
 
+var ErrUnknownSession = httperr.New(401, "unknown session")
+
 // RoomsPerUser is the maximum number of rooms a user can make. This may change
 // in the future.
 const RoomsPerUser = 3
