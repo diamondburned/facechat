@@ -21,12 +21,13 @@ const schema = `
 	);
 
 	CREATE TABLE IF NOT EXISTS accounts (
-		id      TEXT PRIMARY KEY, -- slow
 		service TEXT NOT NULL,
-		cookies JSON NOT NULL,
+		name    TEXT NOT NULL,
+		url     TEXT NOT NULL,
+		data    JSON NOT NULL,
 		user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 
-		UNIQUE (service, user_id)
+		UNIQUE (service, user_id) -- 1 service per person
 	);
 
 	CREATE TABLE IF NOT EXISTS sessions (

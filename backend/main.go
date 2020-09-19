@@ -1,24 +1,26 @@
 package main
 
 import (
-	"database/sql"
 	"log"
 	"os"
 	"path/filepath"
 
+	nethttp "net/http"
+
+	"github.com/diamondburned/facechat/backend/db"
+	"github.com/diamondburned/facechat/backend/http"
+	"github.com/diamondburned/facechat/backend/http/addr"
+	"github.com/go-chi/chi"
 	"github.com/joho/godotenv"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
-func init() {
+// Parse .env asap.
+var _ = func() struct{} {
 	d, err := filepath.Glob("env*")
 	if err != nil {
 		log.Fatalln("Failed to get env* files:", err)
-	}
-
-	if len(d) == 0 {
-		log.Fatalln("No env files found.")
 	}
 
 	for _, f := range d {
@@ -26,12 +28,22 @@ func init() {
 			log.Fatalf("Failed to load %q: %v\n", f, err)
 		}
 	}
-}
+
+	return struct{}{}
+}()
 
 func main() {
-	d, err := sql.Open("pgx", os.Getenv("SQL_ADDRESS"))
+	d, err := db.Open(os.Getenv("SQL_ADDRESS"))
 	if err != nil {
 		log.Fatalln("Failed to connect to PostgreSQL:", err)
 	}
-	_ = d
+
+	r := chi.NewMux()
+	r.Mount("/api", http.Mount(d))
+
+	h := addr.HTTP()
+
+	if err := nethttp.ListenAndServe(h.Host, r); err != nil {
+		log.Fatalln("Failed to listen:", err)
+	}
 }

@@ -68,9 +68,9 @@ func (tx *Tx) Login(email, password string) (*facechat.Session, error) {
 	return ses, err
 }
 
-func (tx *Tx) UpdateSession(token string, expiry time.Time) error {
-	return errors.New("unimplemented")
-}
+// func (tx *Tx) UpdateSession(token string, expiry time.Time) error {
+// 	return errors.New("unimplemented")
+// }
 
 func (tx *Tx) DeleteSession(token string) error {
 	return errors.New("unimplemented")
@@ -98,6 +98,8 @@ func (tx *Tx) insertSession(user facechat.ID) (*facechat.Session, error) {
 	return &ses, nil
 }
 
+func (tx *Tx) AddAccount(acc facechat.Account) error {}
+
 type ReadTx struct {
 	tx *sqlx.Tx
 }
@@ -110,9 +112,21 @@ func (tx *ReadTx) User(id facechat.ID) (*facechat.User, error) {
 	var user facechat.User
 	row := tx.tx.QueryRowx("SELECT * FROM users WHERE id = ?", id)
 	if err := row.StructScan(&user); err != nil {
-		return nil, errors.Wrap(err, "error scanning row into user")
+		return nil, errors.Wrap(err, "error getting user")
 	}
 	return &user, nil
+}
+
+func (tx *ReadTx) UserAccountsLen(id facechat.ID) (n int, err error) {
+	err = tx.tx.
+		QueryRowx("SELECT COUNT(*) FROM accounts WHERE user_id = ?", id).
+		Scan(&n)
+
+	if err != nil {
+		return 0, errors.Wrap(err, "error getting accounts number")
+	}
+
+	return
 }
 
 func (tx *ReadTx) UserAccounts(id facechat.ID) ([]facechat.Account, error) {

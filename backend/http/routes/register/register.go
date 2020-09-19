@@ -6,6 +6,7 @@ import (
 
 	"github.com/diamondburned/facechat/backend/db"
 	"github.com/diamondburned/facechat/backend/facechat"
+	"github.com/diamondburned/facechat/backend/http/auth"
 	"github.com/diamondburned/facechat/backend/http/tx"
 	"github.com/diamondburned/facechat/backend/internal/httperr"
 	"github.com/go-chi/chi"
@@ -33,8 +34,10 @@ func register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var u *facechat.User
+	var s *facechat.Session
+
 	err := tx.Acquire(r, func(tx *db.Tx) (err error) {
-		u, err = tx.Register(body.Username, body.Password, body.Email)
+		u, s, err = tx.Register(body.Username, body.Password, body.Email)
 		return
 	})
 
@@ -42,6 +45,8 @@ func register(w http.ResponseWriter, r *http.Request) {
 		httperr.WriteErr(w, err)
 		return
 	}
+
+	auth.WriteSession(w, s)
 
 	if err := json.NewEncoder(w).Encode(u); err != nil {
 		httperr.WriteErr(w, err)

@@ -3,87 +3,95 @@ package auth
 import (
 	"context"
 	"net/http"
-	"time"
 
-	"github.com/alexedwards/scs/v2"
 	"github.com/diamondburned/facechat/backend/db"
-	"github.com/pkg/errors"
+	"github.com/diamondburned/facechat/backend/facechat"
+	"github.com/diamondburned/facechat/backend/internal/httperr"
 )
 
 type ctxKey int
 
 const (
-	scsKey ctxKey = iota
+	sessionKey ctxKey = iota
 )
 
-func Middleware(db *db.DB) func(http.Handler) http.Handler {
-	m := scs.New()
-	m.Lifetime = 7 * 24 * time.Hour
+var ErrTokenNotFound = httperr.New(403, "token not found")
 
-	return m.LoadAndSave
+func Require(database *db.DB) func(http.Handler) http.Handler {
+	return require(database, true)
 }
 
-func SessionManager(r *http.Request) *scs.SessionManager {
-	return SessionManagerFromCtx(r.Context())
+func require(database *db.DB, verifyAccounts bool) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			c, err := r.Cookie("token")
+			if err != nil {
+				httperr.WriteErr(w, ErrTokenNotFound)
+				return
+			}
+
+			var s *facechat.Session
+			err = database.RAcquire(r.Context(), func(tx *db.ReadTx) (err error) {
+				s, err = tx.Session(c.Value)
+				if err != nil {
+					return err
+				}
+
+				if verifyAccounts {
+					n, err := tx.UserAccountsLen(s.UserID)
+					if err != nil {
+						return err
+					}
+
+					// TODO: change
+					if n < facechat.MinAccounts {
+						return facechat.ErrNoAccountsLinked
+					}
+				}
+
+				return nil
+			})
+
+			if err != nil {
+				// TODO: session not found.
+				httperr.WriteErr(w, err)
+				return
+			}
+
+			next.ServeHTTP(w, r.WithContext(
+				context.WithValue(r.Context(), sessionKey, s),
+			))
+		})
+	}
 }
 
-func SessionManagerFromCtx(ctx context.Context) *scs.SessionManager {
-	sm, ok := ctx.Value(scsKey).(*scs.SessionManager)
+func WriteSession(w http.ResponseWriter, s *facechat.Session) {
+	if s == nil {
+		http.SetCookie(w, &http.Cookie{
+			Name:  "token",
+			Value: "",
+		})
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "token",
+		Value:    s.Token,
+		Path:     "/",
+		Expires:  s.Expiry,
+		SameSite: http.SameSiteStrictMode,
+	})
+}
+
+func Session(r *http.Request) *facechat.Account {
+	return SessionFromCtx(r.Context())
+}
+
+func SessionFromCtx(ctx context.Context) *facechat.Account {
+	sm, ok := ctx.Value(sessionKey).(*facechat.Account)
 	if !ok {
 		return nil
 	}
 
 	return sm
 }
-
-type store struct {
-	*db.DB
-}
-
-func newStore(db *db.DB) scs.Store {
-	return &store{db}
-}
-
-func (s *store) Delete(token string) (err error) {
-	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
-	defer cancel()
-
-	err := s.DB.Acquire(ctx, func(tx *db.Tx) error {
-		return tx.DeleteSession(token)
-	})
-
-	return errors.Wrap(err, "Failed to delete token")
-}
-
-func (s *store) Find(token string) (b []byte, found bool, err error) {
-	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
-	defer cancel()
-
-	err = s.DB.RAcquire(ctx, func(tx *db.ReadTx) error {
-		s, err := tx.Session(token)
-		if err != nil {
-			return err
-		}
-
-		found = true
-		b = []byte(s.Data)
-
-		return nil
-	})
-
-	err = errors.Wrap(err, "Failed to find token")
-
-	return
-}
-
-func (s *store) Commit(token string, b []byte, expiry time.Time) error {
-	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
-	defer cancel()
-
-	err := s.DB.Acquire(ctx, func(tx *db.Tx) error {
-		tx.UpdateSession()
-	})
-}
-
-// func store(db *db.DB) scs.Store {
-// }

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/snowflake"
+	"github.com/diamondburned/facechat/backend/internal/httperr"
 	"github.com/pkg/errors"
 )
 
@@ -33,12 +34,16 @@ type User struct {
 	Accounts []Account `json:"accounts" db:"accounts"`
 }
 
-type Account struct {
-	ID      string          `json:"id" db:"id"`
-	Service string          `json:"service" db:"service"`
-	Cookies json.RawMessage `json:"cookies" db:"cookies"`
+const MinAccounts = 1
 
-	UserID ID `json:"userID" db:"user_id"`
+var ErrNoAccountsLinked = httperr.New(400, "no accounts linked")
+
+type Account struct {
+	Service string          `json:"service" db:"service"`
+	Name    string          `json:"name"    db:"name"`
+	URL     string          `json:"url"     db:"url"`
+	Data    json.RawMessage `json:"data"    db:"data"`
+	UserID  ID              `json:"userID"  db:"user_id"`
 }
 
 const SessionTimeout = 7 * 24 * time.Hour
