@@ -1,9 +1,13 @@
 package db
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+	"net/http"
 	"time"
 
 	"github.com/diamondburned/facechat/backend/facechat"
+	"github.com/diamondburned/facechat/backend/internal/httperr"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
@@ -13,12 +17,12 @@ type Tx struct {
 	*ReadTx
 }
 
-func (tx *Tx) Register(username, password, email string) (*facechat.User, error) {
+func (tx *Tx) Register(username, password, email string) (*facechat.User, *facechat.Session, error) {
 	id := facechat.GenerateID()
 
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, errors.Wrap(err, "error hashing password")
+		return nil, nil, errors.Wrap(err, "error hashing password")
 	}
 
 	_, err = tx.tx.Exec(
@@ -26,7 +30,7 @@ func (tx *Tx) Register(username, password, email string) (*facechat.User, error)
 		id, username, hashed, email,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "error inserting user into db")
+		return nil, nil, errors.Wrap(err, "error inserting user into db")
 	}
 
 	user := &facechat.User{
@@ -34,20 +38,73 @@ func (tx *Tx) Register(username, password, email string) (*facechat.User, error)
 		Name:  username,
 		Email: email,
 	}
-	return user, nil
+	ses, err := tx.insertSession(id)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return user, ses, nil
 }
 
-func (tx *Tx) Login(email, password string) (*facechat.Session, error) {}
+func (tx *Tx) Login(email, password string) (*facechat.Session, error) {
+	var hashed []byte
+	var id facechat.ID
+	row := tx.tx.QueryRow("SELECT pass, id FROM users WHERE email = ?", email)
+	err := row.Scan(&hashed, &id)
+	if err != nil {
+		return nil, err
+	}
 
-func (tx *Tx) UpdateSession(token string, expiry time.Time) error {}
+	err = bcrypt.CompareHashAndPassword(hashed, []byte(password))
+	if err != nil {
+		return nil, httperr.Wrap(err, http.StatusUnauthorized, "invalid password")
+	}
 
-func (tx *Tx) DeleteSession(token string) error {}
+	ses, err := tx.insertSession(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return ses, err
+}
+
+func (tx *Tx) UpdateSession(token string, expiry time.Time) error {
+	return errors.New("unimplemented")
+}
+
+func (tx *Tx) DeleteSession(token string) error {
+	return errors.New("unimplemented")
+}
+
+func (tx *Tx) insertSession(user facechat.ID) (*facechat.Session, error) {
+	token, err := randToken()
+	if err != nil {
+		return nil, err
+	}
+
+	ses := facechat.Session{
+		UserID: user,
+		Token:  token,
+		Expiry: time.Now().Add(facechat.SessionTimeout),
+	}
+
+	_, err = tx.tx.Exec(
+		"INSERT INTO users(user_id, token, expiry) VALUES (?, ?, ?)",
+		ses.UserID, ses.Token, ses.Expiry,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &ses, nil
+}
 
 type ReadTx struct {
 	tx *sqlx.Tx
 }
 
-func (tx *ReadTx) Session(token string) (*facechat.Session, error) {}
+func (tx *ReadTx) Session(token string) (*facechat.Session, error) {
+	return nil, errors.New("unimplemented")
+}
 
 func (tx *ReadTx) User(id facechat.ID) (*facechat.User, error) {
 	var user facechat.User
@@ -75,12 +132,12 @@ func (tx *ReadTx) UserAccounts(id facechat.ID) ([]facechat.Account, error) {
 	return accounts, nil
 }
 
-func (tx *ReadTx) UserVerifyPassword(email, pass string) error {
-	var hashed []byte
-	row := tx.tx.QueryRow("SELECT pass FROM users WHERE email = ?", email)
-	err := row.Scan(&hashed)
-	if err != nil {
-		return errors.Wrap(err, "error scanning row into password")
+func randToken() (string, error) {
+	var token = make([]byte, 32)
+
+	if _, err := rand.Read(token); err != nil {
+		return "", errors.Wrap(err, "failed to generate randomness")
 	}
-	return bcrypt.CompareHashAndPassword(hashed, []byte(pass))
+
+	return base64.RawURLEncoding.EncodeToString(token), nil
 }
