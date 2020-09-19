@@ -47,6 +47,4 @@ type Session struct {
 	UserID ID        `json:"-" db:"user_id"`
 	Token  string    `json:"-" db:"token"`
 	Expiry time.Time `json:"-" db:"expiry"`
-
-	User User `json:"-" db:"-"`
 }
