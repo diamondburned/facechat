@@ -2,6 +2,7 @@ package message
 
 import (
 	"encoding/json"
+	"html"
 	"net/http"
 
 	"github.com/diamondburned/facechat/backend/db"
@@ -79,6 +80,9 @@ func createMessage(w http.ResponseWriter, r *http.Request) {
 		httperr.WriteErr(w, httperr.Wrap(err, 400, "failed to decode create msg json"))
 		return
 	}
+
+	// Sanitize the message.
+	cj.Markdown = html.EscapeString(cj.Markdown)
 
 	roomID := roomid.Get(r)
 	s := auth.Session(r)

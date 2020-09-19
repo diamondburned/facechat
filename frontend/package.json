@@ -23,7 +23,11 @@
 		"webpack-dev-server": "^3.3.1"
 	},
 	"dependencies": {
-		"navaid": "^1.0.5"
+		"escape-html": "^1.0.3",
+		"marked": "^1.1.1",
+		"navaid": "^1.0.5",
+		"simplemde": "^1.11.2",
+		"spectre.css": "^0.5.9"
 	},
 	"prettier": {
 		"useTabs": true,
