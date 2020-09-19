@@ -17,7 +17,7 @@ type Tx struct {
 }
 
 func (tx *Tx) Register(username, password, email string) (*facechat.User, *facechat.Session, error) {
-	id := facechat.GenerateID()
+	tx.UserID = facechat.GenerateID()
 
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -26,18 +26,18 @@ func (tx *Tx) Register(username, password, email string) (*facechat.User, *facec
 
 	_, err = tx.tx.Exec(
 		"INSERT INTO users(id, name, pass, email) VALUES (?, ?)",
-		id, username, hashed, email,
+		tx.UserID, username, hashed, email,
 	)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "error inserting user into db")
 	}
 
 	user := &facechat.User{
-		ID:    id,
+		ID:    tx.UserID,
 		Name:  username,
 		Email: email,
 	}
-	ses, err := tx.insertSession(id)
+	ses, err := tx.insertSession()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -47,9 +47,9 @@ func (tx *Tx) Register(username, password, email string) (*facechat.User, *facec
 
 func (tx *Tx) Login(email, password string) (*facechat.Session, error) {
 	var hashed []byte
-	var id facechat.ID
+
 	row := tx.tx.QueryRow("SELECT pass, id FROM users WHERE email = ?", email)
-	err := row.Scan(&hashed, &id)
+	err := row.Scan(&hashed, &tx.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (tx *Tx) Login(email, password string) (*facechat.Session, error) {
 		return nil, httperr.Wrap(err, http.StatusUnauthorized, "invalid password")
 	}
 
-	ses, err := tx.insertSession(id)
+	ses, err := tx.insertSession()
 	if err != nil {
 		return nil, err
 	}
@@ -75,14 +75,14 @@ func (tx *Tx) Login(email, password string) (*facechat.Session, error) {
 // 	return errors.New("unimplemented")
 // }
 
-func (tx *Tx) insertSession(user facechat.ID) (*facechat.Session, error) {
+func (tx *Tx) insertSession() (*facechat.Session, error) {
 	token, err := randToken()
 	if err != nil {
 		return nil, err
 	}
 
 	ses := facechat.Session{
-		UserID: user,
+		UserID: tx.UserID,
 		Token:  token,
 		Expiry: time.Now().Add(facechat.SessionTimeout),
 	}
@@ -98,17 +98,27 @@ func (tx *Tx) insertSession(user facechat.ID) (*facechat.Session, error) {
 }
 
 func (tx *Tx) AddAccount(acc facechat.Account) error {
-	panic("Implement me")
+	_, err := tx.tx.Exec(
+		"INSERT INTO accounts VALUES($1, $2, $3, $4, $5)",
+		acc.Service, acc.Name, acc.URL, acc.Data, acc.UserID,
+	)
+	return errors.Wrap(err, "failed to add account")
 }
 
-func (tx *Tx) SetRelationship(userID, targetID facechat.ID, rel facechat.RelationshipType) error {
-	// TODO(diamond to sam): this requires further discussion, contact me.
-	panic("Implement me")
+func (tx *Tx) SetRelationship(targetID facechat.ID, rel facechat.RelationshipType) error {
+	if err := tx.IsBlocked(targetID); err != nil {
+		return err
+	}
+
+	_, err := tx.tx.Exec(
+		"INSERT INTO relationships VALUES ($1, $2, $3) ON CONFLICT DO UPDATE SET type = $3",
+		tx.UserID, targetID, rel,
+	)
+	return errors.Wrap(err, "failed to update relationship")
 }
 
 func (tx *Tx) CreatePublicLobby(name string, lvl facechat.SecretLevel) (*facechat.Room, error) {
 	room := facechat.Room{
-		Type:  facechat.PublicLobby,
 		Name:  name,
 		Level: lvl,
 	}
@@ -121,25 +131,27 @@ func (tx *Tx) CreatePublicLobby(name string, lvl facechat.SecretLevel) (*facecha
 }
 
 func (tx *Tx) CreatePrivateRoom(targetUser facechat.ID) (*facechat.Room, error) {
-	r, err := tx.Relationship(targetUser)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get relationship")
-	}
-
-	if r != facechat.Friend {
+	if err := tx.IsMutual(targetUser); err != nil {
 		return nil, err
 	}
 
-	// TODO: write a complex query that searches room_participants where both
-	// current user and target user has the same room_id (aka shares the same
-	// room), then query rooms for type == PrivateRoom
+	var u1, u2 = tx.UserID, targetUser
+	// Guarantee a specific ID order.
+	if u1 > u2 {
+		u1, u2 = u2, u1
+	}
+
+	var roomID facechat.ID
+	row := tx.tx.QueryRow(
+		"SELECT room_id FROM private_rooms WHERE recipient1 = $1 AND recipient2 = $2",
+		u1, u2,
+	)
+
+	if err := row.Scan(&roomID); err == nil {
+		return tx.Room(roomID)
+	}
 
 	room := facechat.Room{
-		Type: facechat.PrivateRoom,
-		// TODO: query the target user for the room name.
-		Name: "",
-		// TODO: if UpdateRoom method, DO NOT change level if the room type is a
-		// Private one.
 		Level: facechat.FullyOpen,
 	}
 
@@ -147,19 +159,33 @@ func (tx *Tx) CreatePrivateRoom(targetUser facechat.ID) (*facechat.Room, error) 
 		return nil, err
 	}
 
+	_, err := tx.tx.Exec(
+		"INSERT INTO private_rooms VALUES ($1, $2, $3)",
+		room.ID, u1, u2,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to register private room")
+	}
+
 	return &room, nil
 }
 
 func (tx *Tx) createRoom(room *facechat.Room) error {
-	(*room).ID = 0 // TODO
-	panic("Implement me")
+	// Generate a new ID.
+	(*room).ID = facechat.GenerateID()
+
+	_, err := tx.tx.Exec(
+		"INSERT INTO rooms VALUES ($1, $2, $3, $4)",
+		room.ID, room.Name, room.Topic, room.Level,
+	)
+	return errors.Wrap(err, "failed to create room")
 }
 
-func (tx *Tx) CreateMessage(room, author facechat.ID, content string) (*facechat.Message, error) {
+func (tx *Tx) CreateMessage(room facechat.ID, content string) (*facechat.Message, error) {
 	msg := facechat.Message{
 		Type:     facechat.NormalMessage,
 		RoomID:   room,
-		AuthorID: author,
+		AuthorID: tx.UserID,
 		Markdown: content,
 	}
 
@@ -171,21 +197,52 @@ func (tx *Tx) CreateMessage(room, author facechat.ID, content string) (*facechat
 }
 
 func (tx *Tx) AddMessage(msg *facechat.Message) error {
+	if err := tx.IsInRoom(msg.RoomID); err != nil {
+		return err
+	}
+
 	// do a room_participants check on AuthorID
-	// *msg.ID = setIDhere
-	panic("Implement me")
+	(*msg).ID = facechat.GenerateID()
+
+	_, err := tx.tx.Exec(
+		"INSERT INTO messages VALUES ($1, $2, $3, $4, $5)",
+		msg.ID, msg.Type, msg.RoomID, msg.AuthorID, msg.Markdown,
+	)
+	return err
 }
 
-func (tx *Tx) JoinRoom(room, user facechat.ID) error {
-	// room_participants
-	// TYPE == facechat.PublicLobby (MUST DO THIS)
-	panic("Implement me")
+func (tx *Tx) JoinRoom(room facechat.ID) error {
+	if err := tx.IsInRoom(room); err == nil {
+		// Exit if the user is already in the room.
+		return nil
+	}
+
+	_, err := tx.tx.Exec(
+		"INSERT INTO room_participants VALUES ($1, $2)",
+		room, tx.UserID,
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to exec join room")
+	}
+
+	return nil
 }
 
-func (tx *Tx) LeaveRoom(room, user facechat.ID) error {
-	// room_participants
-	// TYPE == facechat.PublicLobby (MUST DO THIS)
-	panic("Implement me")
+func (tx *Tx) LeaveRoom(room facechat.ID) error {
+	if err := tx.IsInRoom(room); err != nil {
+		// Exit if the user is not in the room.
+		return err
+	}
+
+	_, err := tx.tx.Exec(
+		"DELETE FROM room_participants WHERE room_id = $1 AND user_id = $2",
+		room, tx.UserID,
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to delete from room")
+	}
+
+	return nil
 }
 
 func randToken() (string, error) {

@@ -4,13 +4,10 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/diamondburned/facechat/backend/facechat"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
-
-type DB struct {
-	db *sqlx.DB
-}
 
 const schema = `
 	CREATE TABLE IF NOT EXISTS users (
@@ -48,7 +45,6 @@ const schema = `
 
 	CREATE TABLE IF NOT EXISTS rooms (
 		id    BIGINT   PRIMARY KEY,
-		type  SMALLINT NOT NULL,
 		name  TEXT     NOT NULL,
 		topic TEXT     NOT NULL,
 		level SMALLINT NOT NULL
@@ -61,6 +57,14 @@ const schema = `
 		UNIQUE (room_id, user_id)
 	);
 
+	CREATE TABLE IF NOT EXISTS private_rooms (
+		room_id    BIGINT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+		recipient1 BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		recipient2 BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+
+		UNIQUE (recipient1, recipient2)
+	);
+
 	CREATE TABLE IF NOT EXISTS messages (
 		id        BIGINT   PRIMARY KEY,
 		type      SMALLINT NOT NULL,
@@ -69,6 +73,14 @@ const schema = `
 		markdown  TEXT     NOT NULL
 	);
 `
+
+type userState struct {
+	UserID facechat.ID
+}
+
+type DB struct {
+	db *sqlx.DB
+}
 
 func Open(source string) (*DB, error) {
 	sqldb, err := sql.Open("pgx", source)
@@ -79,22 +91,34 @@ func Open(source string) (*DB, error) {
 	return &DB{db}, nil
 }
 
-func (db *DB) Acquire(ctx context.Context, fn func(tx *Tx) error) error {
+func (db *DB) Acquire(ctx context.Context, user facechat.ID, fn func(tx *Tx) error) error {
 	sqlxtx, err := db.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, "error starting transaction")
 	}
-	tx := &Tx{&ReadTx{sqlxtx}}
-	err = fn(tx)
-	return err
+	defer sqlxtx.Rollback()
+
+	if err = fn(&Tx{&ReadTx{userState{user}, sqlxtx}}); err != nil {
+		return err
+	}
+
+	return sqlxtx.Commit()
 }
 
-func (db *DB) RAcquire(ctx context.Context, fn func(tx *ReadTx) error) error {
-	sqlxtx, err := db.db.BeginTxx(ctx, &sql.TxOptions{ReadOnly: true})
+var txRO = &sql.TxOptions{
+	Isolation: sql.LevelReadCommitted,
+	ReadOnly:  true,
+}
+
+func (db *DB) RAcquire(ctx context.Context, user facechat.ID, fn func(tx *ReadTx) error) error {
+	sqlxtx, err := db.db.BeginTxx(ctx, txRO)
 	if err != nil {
 		return errors.Wrap(err, "error starting transaction")
 	}
-	tx := &ReadTx{sqlxtx}
-	err = fn(tx)
-	return err
+
+	if err = fn(&ReadTx{userState{user}, sqlxtx}); err != nil {
+		return err
+	}
+
+	return sqlxtx.Commit()
 }

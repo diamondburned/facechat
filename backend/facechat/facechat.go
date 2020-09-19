@@ -37,6 +37,8 @@ type User struct {
 	Email string `json:"email"     db:"email"`
 }
 
+var ErrUserNotFound = httperr.New(404, "user not found")
+
 type Relationship struct {
 	TargetID ID               `json:"target_id,string" db:"target_id"`
 	Type     RelationshipType `json:"type"             db:"type"`
@@ -48,9 +50,9 @@ const (
 	Stranger RelationshipType = iota
 	Blocked
 	Friend
-	IncomingFriendRequest
-	SentFriendRequest
 )
+
+var ErrNotMutual = httperr.New(401, "not mutual friends")
 
 const MinAccounts = 1
 
@@ -80,18 +82,18 @@ const MaxRoomNameLen = 64
 
 type Room struct {
 	ID    ID          `json:"id,string" db:"id"`
-	Type  RoomType    `json:"type"      db:"typee"`
 	Name  string      `json:"name"      db:"name"`
 	Topic string      `json:"topic"     db:"topic"`
 	Level SecretLevel `json:"level"     db:"level"`
 }
 
-type RoomType int8
+var ErrRoomNotFound = httperr.New(404, "room not found")
 
-const (
-	PublicLobby RoomType = iota
-	PrivateRoom
-)
+type PrivateRoom struct {
+	RoomID     ID `json:"room_id"    db:"room_id"`
+	Recipient1 ID `json:"recipient1" db:"recipient1"`
+	Recipient2 ID `json:"recipient2" db:"recipient2"`
+}
 
 type SecretLevel int8
 
