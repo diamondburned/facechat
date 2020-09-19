@@ -1,6 +1,12 @@
 package db
 
-import "github.com/jmoiron/sqlx"
+import (
+	"context"
+	"database/sql"
+
+	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
+)
 
 type DB struct {
 	db *sqlx.DB
@@ -22,31 +28,31 @@ const schema = `
 	);
 `
 
-func Open(source string) (*Database, error) {
+func Open(source string) (*DB, error) {
 	sqldb, err := sql.Open("pgx", source)
 	if err != nil {
 		return nil, err
 	}
-	db := sqlx.NewDB(sqldb, "pgx")
+	db := sqlx.NewDb(sqldb, "pgx")
 	return &DB{db}, nil
 }
 
-func (db *DB) Acquire(ctx context.Context, fn func(tx *TX) error) error {
-	sqltx, err := db.db.BeginTX(ctx, nil)
+func (db *DB) Acquire(ctx context.Context, fn func(tx *Tx) error) error {
+	sqlxtx, err := db.db.BeginTxx(ctx, nil)
 	if err != nil {
-		return errors.Wrap("error starting transaction", err)
+		return errors.Wrap(err, "error starting transaction")
 	}
-	tx := Tx{sqltx}
+	tx := &Tx{&ReadTx{sqlxtx}}
 	err = fn(tx)
 	return err
 }
 
-func (db *DB) RAcquire(fn func(tx *ReadTX) error) error {
-	sqltx, err := db.db.BeginTX(ctx, &sql.TxOptions{ReadOnly:true})
+func (db *DB) RAcquire(ctx context.Context, fn func(tx *ReadTx) error) error {
+	sqlxtx, err := db.db.BeginTxx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
-		return errors.Wrap("error starting transaction", err)
+		return errors.Wrap(err, "error starting transaction")
 	}
-	tx := ReadTx{sqltx}
+	tx := &ReadTx{sqlxtx}
 	err = fn(tx)
 	return err
 }
