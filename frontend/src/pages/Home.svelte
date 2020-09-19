@@ -1,0 +1,7 @@
+<style>
+
+</style>
+
+<div id="home">
+	<h1>Hello.</h1>
+</div>

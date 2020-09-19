@@ -32,14 +32,14 @@ func (id ID) String() string {
 }
 
 type User struct {
-	ID    ID     `json:"id" db:"id"`
-	Name  string `json:"name" db:"name"`
-	Email string `json:"email" db:"email"`
+	ID    ID     `json:"id,string" db:"id"`
+	Name  string `json:"name"      db:"name"`
+	Email string `json:"email"     db:"email"`
 }
 
 type Relationship struct {
-	TargetID ID               `json:"target_id" db:"target_id"`
-	Type     RelationshipType `json:"type"      db:"type"`
+	TargetID ID               `json:"target_id,string" db:"target_id"`
+	Type     RelationshipType `json:"type"             db:"type"`
 }
 
 type RelationshipType uint8
@@ -57,11 +57,11 @@ const MinAccounts = 1
 var ErrNoAccountsLinked = httperr.New(400, "no accounts linked")
 
 type Account struct {
-	Service string          `json:"service" db:"service"`
-	Name    string          `json:"name"    db:"name"`
-	URL     string          `json:"url"     db:"url"`
-	Data    json.RawMessage `json:"data"    db:"data"`
-	UserID  ID              `json:"userID"  db:"user_id"`
+	Service string          `json:"service"       db:"service"`
+	Name    string          `json:"name"          db:"name"`
+	URL     string          `json:"url"           db:"url"`
+	Data    json.RawMessage `json:"data"          db:"data"`
+	UserID  ID              `json:"userID,string" db:"user_id"`
 }
 
 const SessionTimeout = 7 * 24 * time.Hour
@@ -79,11 +79,11 @@ const RoomsPerUser = 3
 const MaxRoomNameLen = 64
 
 type Room struct {
-	ID    ID          `json:"id"    db:"id"`
-	Type  RoomType    `json:"type"  db:"typee"`
-	Name  string      `json:"name"  db:"name"`
-	Topic string      `json:"topic" db:"topic"`
-	Level SecretLevel `json:"level" db:"level"`
+	ID    ID          `json:"id,string" db:"id"`
+	Type  RoomType    `json:"type"      db:"typee"`
+	Name  string      `json:"name"      db:"name"`
+	Topic string      `json:"topic"     db:"topic"`
+	Level SecretLevel `json:"level"     db:"level"`
 }
 
 type RoomType int8
@@ -109,11 +109,11 @@ const (
 const MaxMessageLen = 2048
 
 type Message struct {
-	ID       ID          `json:"id"        db:"id"`
-	Type     MessageType `json:"type"      db:"type"`
-	RoomID   ID          `json:"room_id"   db:"room_id"`
-	AuthorID ID          `json:"author_id" db:"author_id"`
-	Markdown string      `json:"markdown"  db:"markdown"`
+	ID       ID          `json:"id,string"        db:"id"`
+	Type     MessageType `json:"type"             db:"type"`
+	RoomID   ID          `json:"room_id,string"   db:"room_id"`
+	AuthorID ID          `json:"author_id,string" db:"author_id"`
+	Markdown string      `json:"markdown"         db:"markdown"`
 }
 
 type MessageType int8

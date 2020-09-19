@@ -1,4 +1,4 @@
-module github.com/diamondburned/facechat/backend
+module github.com/diamondburned/facechat
 
 go 1.14
 

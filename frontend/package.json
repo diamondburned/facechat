@@ -1,14 +1,64 @@
 {
-  "name": "facechat-frontend",
-  "version": "0.0.1",
-  "description": "Svelte frontend for Facechat",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "AGPL-3.0-only",
-  "dependencies": {
-    "svelte": "^3.25.1"
-  }
+	"name": "facechat-frontend",
+	"version": "0.0.1",
+	"description": "Svelte frontend for Facechat",
+	"scripts": {
+		"build": "cross-env NODE_ENV=production webpack",
+		"dev": "webpack-dev-server --content-base public --history-api-fallback"
+	},
+	"author": "",
+	"license": "AGPL-3.0-only",
+	"devDependencies": {
+		"cross-env": "^5.2.0",
+		"css-loader": "^2.1.1",
+		"eslint": "^7.9.0",
+		"html-webpack-plugin": "^3.2.0",
+		"mini-css-extract-plugin": "^0.6.0",
+		"serve": "^11.0.0",
+		"style-loader": "^0.23.1",
+		"svelte": "^3.0.0",
+		"svelte-loader": "2.13.3",
+		"webpack": "^4.30.0",
+		"webpack-cli": "^3.3.0",
+		"webpack-dev-server": "^3.3.1"
+	},
+	"dependencies": {
+		"navaid": "^1.0.5"
+	},
+	"prettier": {
+		"useTabs": true,
+		"semi": false,
+		"singleQuote": false,
+		"trailingComma": "all",
+		"bracketSpacing": true
+	},
+	"eslintConfig": {
+		"env": {
+			"browser": true,
+			"es2020": true
+		},
+		"extends": "eslint:recommended",
+		"parserOptions": {
+			"ecmaVersion": 11,
+			"sourceType": "module"
+		},
+		"rules": {
+			"indent": [
+				"error",
+				"tab"
+			],
+			"linebreak-style": [
+				"error",
+				"unix"
+			],
+			"quotes": [
+				"error",
+				"double"
+			],
+			"semi": [
+				"error",
+				"never"
+			]
+		}
+	}
 }
