@@ -1,5 +1,7 @@
 package facechat
 
+import "encoding/json"
+
 type ID uint64
 
 type User struct {
@@ -15,9 +17,10 @@ type UserAuth struct {
 	PassHash string `json:"-"`
 }
 
-type Account interface {
-	ServiceName() string
-	ID() string
-	Name() string
-	Email() string
+type Account struct {
+	ID      string `json:"id" db:"id"`
+	Service string `json:"service"`
+	Cookies json.RawMessage
+
+	UserID ID
 }

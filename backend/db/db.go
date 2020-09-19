@@ -17,6 +17,7 @@ const schema = `
 	CREATE TABLE accounts (
 		id      TEXT PRIMARY KEY, -- slow
 		service TEXT NOT NULL,
+		cookies JSON NOT NULL,
 		user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	);
 `
