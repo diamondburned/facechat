@@ -2,6 +2,7 @@ package facechat
 
 import (
 	"encoding/json"
+	"strconv"
 	"time"
 
 	"github.com/bwmarrin/snowflake"
@@ -26,11 +27,30 @@ func GenerateID() ID {
 	return ID(node.Generate())
 }
 
+func (id ID) String() string {
+	return strconv.FormatUint(uint64(id), 10)
+}
+
 type User struct {
 	ID    ID     `json:"id" db:"id"`
 	Name  string `json:"name" db:"name"`
 	Email string `json:"email" db:"email"`
 }
+
+type Relationship struct {
+	TargetID ID               `json:"target_id" db:"target_id"`
+	Type     RelationshipType `json:"type"      db:"type"`
+}
+
+type RelationshipType uint8
+
+const (
+	Stranger RelationshipType = iota
+	Blocked
+	Friend
+	IncomingFriendRequest
+	SentFriendRequest
+)
 
 const MinAccounts = 1
 
@@ -60,10 +80,18 @@ const MaxRoomNameLen = 64
 
 type Room struct {
 	ID    ID          `json:"id"    db:"id"`
+	Type  RoomType    `json:"type"  db:"typee"`
 	Name  string      `json:"name"  db:"name"`
 	Topic string      `json:"topic" db:"topic"`
 	Level SecretLevel `json:"level" db:"level"`
 }
+
+type RoomType int8
+
+const (
+	PublicLobby RoomType = iota
+	PrivateRoom
+)
 
 type SecretLevel int8
 
@@ -94,4 +122,5 @@ const (
 	NormalMessage MessageType = iota
 	JoinMessage
 	LeaveMessage
+	DeletedMessage // soft delete
 )

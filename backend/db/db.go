@@ -17,7 +17,15 @@ const schema = `
 		id    BIGINT     PRIMARY KEY, -- const always
 		pass  BINARY(40) NOT NULL,
 		name  TEXT       NOT NULL,
-		email TEXT       NOT NULL
+		email TEXT       NOT NULL UNIQUE
+	);
+
+	CREATE TABLE IF NOT EXISTS relationships (
+		user_id   BIGINT   NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		target_id BIGINT   NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		type      SMALLINT NOT NULL,
+
+		UNIQUE (user_id, target_id)
 	);
 
 	CREATE TABLE IF NOT EXISTS accounts (
@@ -40,9 +48,17 @@ const schema = `
 
 	CREATE TABLE IF NOT EXISTS rooms (
 		id    BIGINT   PRIMARY KEY,
+		type  SMALLINT NOT NULL,
 		name  TEXT     NOT NULL,
 		topic TEXT     NOT NULL,
-		level SMALLINT NOT NULL,
+		level SMALLINT NOT NULL
+	);
+
+	CREATE TABLE IF NOT EXISTS room_participants (
+		room_id BIGINT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+		user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+
+		UNIQUE (room_id, user_id)
 	);
 
 	CREATE TABLE IF NOT EXISTS messages (

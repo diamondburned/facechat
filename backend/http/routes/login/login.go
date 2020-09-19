@@ -1,4 +1,4 @@
-package register
+package login
 
 import (
 	"encoding/json"
@@ -10,34 +10,35 @@ import (
 	"github.com/diamondburned/facechat/backend/http/tx"
 	"github.com/diamondburned/facechat/backend/internal/httperr"
 	"github.com/go-chi/chi"
+	"github.com/pkg/errors"
 )
 
 func Mount() http.Handler {
-	mux := chi.NewMux()
-	mux.Post("/", register)
+	r := chi.NewMux()
+	r.Post("/", login)
 
-	return mux
+	return r
 }
 
-type RegisterBody struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+type LoginJSON struct {
 	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
-func register(w http.ResponseWriter, r *http.Request) {
-	var body RegisterBody
-
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httperr.WriteErr(w, httperr.Wrap(err, 400, "Failed to decode JSON"))
+func login(w http.ResponseWriter, r *http.Request) {
+	var l LoginJSON
+	if err := json.NewDecoder(r.Body).Decode(&l); err != nil {
+		httperr.WriteErr(w, httperr.Wrap(err, 400, "failed to decode login body"))
 		return
 	}
 
-	var u *facechat.User
 	var s *facechat.Session
 
 	err := tx.Acquire(r, func(tx *db.Tx) (err error) {
-		u, s, err = tx.Register(body.Username, body.Password, body.Email)
+		s, err = tx.Login(l.Email, l.Password)
+		if err != nil {
+			err = errors.Wrap(err, "failed to login")
+		}
 		return
 	})
 
@@ -47,9 +48,4 @@ func register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	auth.WriteSession(w, s)
-
-	if err := json.NewEncoder(w).Encode(u); err != nil {
-		httperr.WriteErr(w, err)
-		return
-	}
 }

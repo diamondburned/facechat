@@ -42,9 +42,9 @@ func init() {
 	cfg.Endpoint = twitterauth.AuthorizeEndpoint
 }
 
-func Mount(db *db.DB) http.Handler {
+func Mount() http.Handler {
 	r := chi.NewMux()
-	r.Use(auth.Require(db))
+	r.Use(auth.Require())
 	r.Mount("/login", twitter.LoginHandler(&cfg, http.HandlerFunc(onError)))
 	r.Mount("/callback", twitter.CallbackHandler(
 		&cfg,

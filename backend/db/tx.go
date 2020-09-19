@@ -8,7 +8,6 @@ import (
 
 	"github.com/diamondburned/facechat/backend/facechat"
 	"github.com/diamondburned/facechat/backend/internal/httperr"
-	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -102,76 +101,91 @@ func (tx *Tx) AddAccount(acc facechat.Account) error {
 	panic("Implement me")
 }
 
-func (tx *Tx) CreateRoom(name string, lvl facechat.SecretLevel) (*facechat.Room, error) {
-	_ = facechat.Room{
-		ID:    0,
-		Name:  name,
-		Level: lvl,
-	}
+func (tx *Tx) SetRelationship(userID, targetID facechat.ID, rel facechat.RelationshipType) error {
+	// TODO(diamond to sam): this requires further discussion, contact me.
 	panic("Implement me")
 }
 
-func (tx *Tx) CreateMessage(room, author facechat.ID, content string) error {
-	return tx.AddMessage(facechat.Message{
+func (tx *Tx) CreatePublicLobby(name string, lvl facechat.SecretLevel) (*facechat.Room, error) {
+	room := facechat.Room{
+		Type:  facechat.PublicLobby,
+		Name:  name,
+		Level: lvl,
+	}
+
+	if err := tx.createRoom(&room); err != nil {
+		return nil, err
+	}
+
+	return &room, nil
+}
+
+func (tx *Tx) CreatePrivateRoom(targetUser facechat.ID) (*facechat.Room, error) {
+	r, err := tx.Relationship(targetUser)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get relationship")
+	}
+
+	if r != facechat.Friend {
+		return nil, err
+	}
+
+	// TODO: write a complex query that searches room_participants where both
+	// current user and target user has the same room_id (aka shares the same
+	// room), then query rooms for type == PrivateRoom
+
+	room := facechat.Room{
+		Type: facechat.PrivateRoom,
+		// TODO: query the target user for the room name.
+		Name: "",
+		// TODO: if UpdateRoom method, DO NOT change level if the room type is a
+		// Private one.
+		Level: facechat.FullyOpen,
+	}
+
+	if err := tx.createRoom(&room); err != nil {
+		return nil, err
+	}
+
+	return &room, nil
+}
+
+func (tx *Tx) createRoom(room *facechat.Room) error {
+	(*room).ID = 0 // TODO
+	panic("Implement me")
+}
+
+func (tx *Tx) CreateMessage(room, author facechat.ID, content string) (*facechat.Message, error) {
+	msg := facechat.Message{
 		Type:     facechat.NormalMessage,
 		RoomID:   room,
 		AuthorID: author,
 		Markdown: content,
-	})
+	}
+
+	if err := tx.AddMessage(&msg); err != nil {
+		return nil, err
+	}
+
+	return &msg, nil
 }
 
-func (tx *Tx) AddMessage(msg facechat.Message) error {
+func (tx *Tx) AddMessage(msg *facechat.Message) error {
+	// do a room_participants check on AuthorID
+	// *msg.ID = setIDhere
 	panic("Implement me")
 }
 
-type ReadTx struct {
-	tx *sqlx.Tx
+func (tx *Tx) JoinRoom(room, user facechat.ID) error {
+	// room_participants
+	// TYPE == facechat.PublicLobby (MUST DO THIS)
+	panic("Implement me")
 }
 
-func (tx *ReadTx) Session(token string) (*facechat.Session, error) {
-	return nil, errors.New("unimplemented")
-}
-
-func (tx *ReadTx) User(id facechat.ID) (*facechat.User, error) {
-	var user facechat.User
-
-	err := tx.tx.
-		QueryRowx("SELECT * FROM users WHERE id = ? LIMIT 1", id).
-		StructScan(&user)
-	if err != nil {
-		return nil, errors.Wrap(err, "error getting user")
-	}
-
-	return &user, nil
-}
-
-func (tx *ReadTx) UserAccountsLen(id facechat.ID) (n int, err error) {
-	err = tx.tx.
-		QueryRowx("SELECT COUNT(*) FROM accounts WHERE user_id = ?", id).
-		Scan(&n)
-
-	if err != nil {
-		return 0, errors.Wrap(err, "error getting accounts number")
-	}
-
-	return
-}
-
-func (tx *ReadTx) UserAccounts(id facechat.ID) ([]facechat.Account, error) {
-	var accounts []facechat.Account
-	rows, err := tx.tx.Queryx("SELECT * FROM accounts WHERE user_id = ?", id)
-	if err != nil {
-		return nil, err
-	}
-	for rows.Next() {
-		var account facechat.Account
-		err := rows.StructScan(&account)
-		if err != nil {
-			return nil, errors.Wrap(err, "error scanning row into account")
-		}
-		accounts = append(accounts, account)
-	}
-	return accounts, nil
+func (tx *Tx) LeaveRoom(room, user facechat.ID) error {
+	// room_participants
+	// TYPE == facechat.PublicLobby (MUST DO THIS)
+	panic("Implement me")
 }
 
 func randToken() (string, error) {

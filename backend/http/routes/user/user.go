@@ -14,9 +14,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-func Mount(db *db.DB) http.Handler {
+func Mount() http.Handler {
 	r := chi.NewMux()
-	r.Use(auth.Require(db))
+	r.Use(auth.Require())
 	r.Route("/{user}", func(r chi.Router) {
 		r.Get("/", user)
 	})

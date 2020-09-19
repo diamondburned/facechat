@@ -10,6 +10,7 @@ import (
 	"github.com/diamondburned/facechat/backend/db"
 	"github.com/diamondburned/facechat/backend/http"
 	"github.com/diamondburned/facechat/backend/http/addr"
+	"github.com/diamondburned/facechat/backend/http/routes/gateway/pubsub"
 	"github.com/go-chi/chi"
 	"github.com/joho/godotenv"
 
@@ -38,8 +39,10 @@ func main() {
 		log.Fatalln("Failed to connect to PostgreSQL:", err)
 	}
 
+	c := pubsub.NewCollection(d)
+
 	r := chi.NewMux()
-	r.Mount("/api", http.Mount(d))
+	r.Mount("/api", http.Mount(d, c))
 
 	h := addr.HTTP()
 

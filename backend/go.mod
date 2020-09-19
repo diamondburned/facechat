@@ -6,6 +6,7 @@ require (
 	github.com/alexedwards/scs v1.4.1 // indirect
 	github.com/alexedwards/scs/v2 v2.4.0 // indirect
 	github.com/bwmarrin/snowflake v0.3.0
+	github.com/cskr/pubsub v1.0.2 // indirect
 	github.com/dghubble/gologin v2.1.0+incompatible
 	github.com/drexedam/gravatar v0.0.0-20170403222345-e4917c5607c3
 	github.com/go-chi/chi v4.1.2+incompatible

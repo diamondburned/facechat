@@ -6,6 +6,7 @@ import (
 
 	"github.com/diamondburned/facechat/backend/db"
 	"github.com/diamondburned/facechat/backend/facechat"
+	"github.com/diamondburned/facechat/backend/http/tx"
 	"github.com/diamondburned/facechat/backend/internal/httperr"
 )
 
@@ -17,11 +18,11 @@ const (
 
 var ErrTokenNotFound = httperr.New(403, "token not found")
 
-func Require(database *db.DB) func(http.Handler) http.Handler {
-	return require(database, true)
+func Require() func(http.Handler) http.Handler {
+	return require(true)
 }
 
-func require(database *db.DB, verifyAccounts bool) func(http.Handler) http.Handler {
+func require(verifyAccounts bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			c, err := r.Cookie("token")
@@ -31,7 +32,7 @@ func require(database *db.DB, verifyAccounts bool) func(http.Handler) http.Handl
 			}
 
 			var s *facechat.Session
-			err = database.RAcquire(r.Context(), func(tx *db.ReadTx) (err error) {
+			err = tx.RAcquire(r, func(tx *db.ReadTx) (err error) {
 				s, err = tx.Session(c.Value)
 				if err != nil {
 					return err

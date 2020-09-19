@@ -50,9 +50,9 @@ func init() {
 	cfg.Endpoint = githubauth.Endpoint
 }
 
-func Mount(db *db.DB) http.Handler {
+func Mount() http.Handler {
 	r := chi.NewMux()
-	r.Use(auth.Require(db))
+	r.Use(auth.Require())
 	r.Mount("/login", github.StateHandler(cookieCfg, http.HandlerFunc(onError)))
 	r.Mount("/callback", github.StateHandler(
 		cookieCfg,
