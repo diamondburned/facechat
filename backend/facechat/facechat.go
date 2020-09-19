@@ -90,6 +90,7 @@ type Room struct {
 }
 
 var (
+	ErrNotInRoom       = httperr.New(401, "you're not in this room")
 	ErrRoomNotFound    = httperr.New(404, "room not found")
 	ErrIllegalRoomName = httperr.New(400, "room name contains invalid characters")
 )

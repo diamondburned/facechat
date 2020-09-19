@@ -49,17 +49,8 @@ func (tx *ReadTx) IsMutual(target facechat.ID) error {
 }
 
 func (tx *ReadTx) Relationship(self, target facechat.ID) (facechat.RelationshipType, error) {
-	r, err := tx.relationship(self, target)
-	if err != nil {
-		return 0, err
-	}
-	if r == facechat.Blocked {
-		return 0, facechat.ErrUserNotFound
-	}
-	return r, nil
-}
+	var t facechat.RelationshipType
 
-func (tx *ReadTx) relationship(self, target facechat.ID) (t facechat.RelationshipType, err error) {
 	r := tx.tx.QueryRow(
 		"SELECT type FROM relationships WHERE user_id = $1 AND target_id = $2",
 		self, target,
@@ -69,7 +60,11 @@ func (tx *ReadTx) relationship(self, target facechat.ID) (t facechat.Relationshi
 		return 0, err
 	}
 
-	return
+	if t == facechat.Blocked {
+		return 0, facechat.ErrUserNotFound
+	}
+
+	return t, nil
 }
 
 func (tx *ReadTx) User(id facechat.ID) (*facechat.User, error) {
@@ -131,8 +126,6 @@ func (tx *ReadTx) Messages(roomID, beforeID facechat.ID, limit int) ([]facechat.
 	if err := tx.IsInRoom(roomID); err != nil {
 		return nil, err
 	}
-
-	// https://www.the-art-of-web.com/sql/select-before-after/
 
 	q, err := tx.tx.Queryx(`
 		SELECT * FROM messages WHERE room_id = $1 AND id > $2 LIMIT $3 ORDER BY id DESC`,
@@ -237,17 +230,16 @@ func (tx *ReadTx) IsInRoom(roomID facechat.ID) error {
 		return err
 	}
 
-	if count == 0 {
-		return facechat.ErrNotIn
+	if count > 0 {
+		return nil
 	}
-
-	panic("Implement me")
+	return facechat.ErrNotInRoom
 }
 
-func (tx *ReadTx) RoomParticipants(roomID facechat.ID) ([]facechat.ID, error) {
-	if err := tx.IsInRoom(roomID); err != nil {
-		return nil, err
-	}
+// func (tx *ReadTx) RoomParticipants(roomID facechat.ID) ([]facechat.ID, error) {
+// 	if err := tx.IsInRoom(roomID); err != nil {
+// 		return nil, err
+// 	}
 
-	panic("Implement me")
-}
+// 	panic("Implement me")
+// }
