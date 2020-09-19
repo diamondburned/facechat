@@ -5,12 +5,12 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type Transaction struct {
-	*sqlx.Tx
+type Tx struct {
+	tx *sqlx.Tx
 }
 
-type ReadTransaction struct {
-	*sqlx.Tx
+type ReadTx struct {
+	tx *sqlx.Tx
 }
 
 func (tx *ReadTransaction) User(id facechat.ID) (*facechat.User, error) {}

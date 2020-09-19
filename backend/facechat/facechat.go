@@ -5,22 +5,17 @@ import "encoding/json"
 type ID uint64
 
 type User struct {
-	ID    ID     `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	ID    ID     `json:"id" db:"id"`
+	Name  string `json:"name" db:"name"`
+	Email string `json:"email" db:"email"`
 
-	Accounts []Account `json:"accounts"`
-}
-
-type UserAuth struct {
-	User
-	PassHash string `json:"-"`
+	Accounts []Account `json:"accounts" db:"accounts"`
 }
 
 type Account struct {
 	ID      string `json:"id" db:"id"`
-	Service string `json:"service"`
-	Cookies json.RawMessage
+	Service string `json:"service" db:"service"`
+	Cookies json.RawMessage `json:"cookies" db:"cookies"`
 
-	UserID ID
+	UserID ID `json:"userID" db:"user_id"`
 }
