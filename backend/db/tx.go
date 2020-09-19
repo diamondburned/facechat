@@ -118,6 +118,10 @@ func (tx *Tx) SetRelationship(targetID facechat.ID, rel facechat.RelationshipTyp
 }
 
 func (tx *Tx) CreatePublicLobby(name string, lvl facechat.SecretLevel) (*facechat.Room, error) {
+	if err := facechat.ValidateRoomName(name); err != nil {
+		return nil, err
+	}
+
 	room := facechat.Room{
 		Name:  name,
 		Level: lvl,

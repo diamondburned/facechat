@@ -126,8 +126,8 @@ func (tx *ReadTx) Messages(roomID, beforeID facechat.ID, limit int) ([]facechat.
 }
 
 func (tx *ReadTx) SearchRoom(query string) ([]facechat.Room, error) {
-	// LIKE topic = ? || $1 || ? (not sure if this is the right syntax)
-	// LIKE name  = ? || $1 || ?
+	// LIKE topic = % || $1 || % (not sure if this is the right syntax)
+	// LIKE name  = % || $1 || %
 	// TYPE == facechat.PublicLobby (MUST DO THIS)
 	panic("Implement me")
 }

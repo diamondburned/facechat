@@ -3,7 +3,9 @@ package facechat
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/bwmarrin/snowflake"
 	"github.com/diamondburned/facechat/backend/internal/httperr"
@@ -87,7 +89,28 @@ type Room struct {
 	Level SecretLevel `json:"level"     db:"level"`
 }
 
-var ErrRoomNotFound = httperr.New(404, "room not found")
+var (
+	ErrRoomNotFound    = httperr.New(404, "room not found")
+	ErrIllegalRoomName = httperr.New(400, "room name contains invalid characters")
+)
+
+// ValidateRoomName returns nil if the room name is valid.
+func ValidateRoomName(name string) error {
+	if name == "" || len(name) > MaxRoomNameLen {
+		return ErrIllegalRoomName
+	}
+
+	// testDigitLetter tests if a rune is not a digit or letter. It returns true
+	// if that is the case.
+	illi := strings.LastIndexFunc(name, func(r rune) bool {
+		return !(unicode.IsDigit(r) || unicode.IsLower(r) || r == '-')
+	})
+	if illi > -1 {
+		return ErrIllegalRoomName
+	}
+
+	return nil
+}
 
 type PrivateRoom struct {
 	RoomID     ID `json:"room_id"    db:"room_id"`
