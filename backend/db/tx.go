@@ -1,6 +1,8 @@
 package db
 
 import (
+	"time"
+
 	"github.com/diamondburned/facechat/backend/facechat"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -13,14 +15,20 @@ type Tx struct {
 
 func (tx *Tx) Register(username, password, email string) (*facechat.User, error) {
 	id := facechat.GenerateID()
+
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, errors.Wrap(err, "error hashing password")
 	}
-	_, err = tx.tx.Exec("INSERT INTO users(id, name, pass, email) VALUES (?, ?)", id, username, hashed, email)
+
+	_, err = tx.tx.Exec(
+		"INSERT INTO users(id, name, pass, email) VALUES (?, ?)",
+		id, username, hashed, email,
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "error inserting user into db")
 	}
+
 	user := &facechat.User{
 		ID:    id,
 		Name:  username,
@@ -29,9 +37,18 @@ func (tx *Tx) Register(username, password, email string) (*facechat.User, error)
 	return user, nil
 }
 
+func (tx *Tx) Login(email, password string) (*facechat.Session, error) {}
+
+func (tx *Tx) UpdateSession(userID facechat.ID, data []byte, expiry time.Time) error {}
+
+// DeleteSession should verify the given token is the user's.
+func (tx *Tx) DeleteSession(userID facechat.ID, token string) error {}
+
 type ReadTx struct {
 	tx *sqlx.Tx
 }
+
+func (tx *ReadTx) Session(token string) (*facechat.Session, error) {}
 
 func (tx *ReadTx) User(id facechat.ID) (*facechat.User, error) {
 	var user facechat.User

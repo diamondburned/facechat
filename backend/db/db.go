@@ -25,6 +25,17 @@ const schema = `
 		service TEXT NOT NULL,
 		cookies JSON NOT NULL,
 		user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+
+		UNIQUE (service, user_id)
+	);
+
+	CREATE TABLE IF NOT EXISTS sessions (
+		user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		data    JSON NOT NULL,
+		token   TEXT NOT NULL UNIQUE,
+		expiry  TIMESTAMP NOT NULL,
+
+		UNIQUE (user_id, token)
 	);
 `
 

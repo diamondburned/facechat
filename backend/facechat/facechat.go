@@ -2,6 +2,7 @@ package facechat
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/bwmarrin/snowflake"
 	"github.com/pkg/errors"
@@ -38,4 +39,13 @@ type Account struct {
 	Cookies json.RawMessage `json:"cookies" db:"cookies"`
 
 	UserID ID `json:"userID" db:"user_id"`
+}
+
+type Session struct {
+	UserID ID              `json:"-" db:"user_id"`
+	Data   json.RawMessage `json:"-" db:"data"`
+	Token  string          `json:"-" db:"token"`
+	Expiry time.Time       `json:"-" db:"expiry"`
+
+	User *User `json:"-" db:"-"`
 }
