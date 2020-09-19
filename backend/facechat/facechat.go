@@ -128,10 +128,15 @@ const (
 	HalfOpen
 	// FullyOpen exposes all information, including social media accounts.
 	FullyOpen
+	// Private is reserved for private rooms. It is the same as FullyOpen.
+	Private
 )
 
 // MaxMessageLen is the maximum number of bytes per message.
 const MaxMessageLen = 2048
+
+// MaxMessagesQuery is the maximum number of messages per GET query.
+const MaxMessagesQuery = 100
 
 type Message struct {
 	ID       ID          `json:"id,string"        db:"id"`
@@ -140,6 +145,8 @@ type Message struct {
 	AuthorID ID          `json:"author_id,string" db:"author_id"`
 	Markdown string      `json:"markdown"         db:"markdown"`
 }
+
+var ErrMessageLimitInvalid = httperr.New(400, "message 0 < limit < 100 invalid")
 
 type MessageType int8
 

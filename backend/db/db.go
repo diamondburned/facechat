@@ -47,7 +47,9 @@ const schema = `
 		id    BIGINT   PRIMARY KEY,
 		name  TEXT     NOT NULL,
 		topic TEXT     NOT NULL,
-		level SMALLINT NOT NULL
+		level SMALLINT NOT NULL,
+
+		UNIQUE (name, level)
 	);
 
 	CREATE TABLE IF NOT EXISTS room_participants (

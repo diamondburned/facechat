@@ -33,8 +33,6 @@ type ListMessagesParam struct {
 	Limit  int         `schema:"limit"`
 }
 
-var ErrLimitInvalid = httperr.New(400, "invalid 0 <= limit <= 100")
-
 func listMessages(w http.ResponseWriter, r *http.Request) {
 	var p ListMessagesParam
 	if err := form.Unmarshal(r, &p); err != nil {
@@ -42,8 +40,8 @@ func listMessages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if p.Limit < 0 || p.Limit > 100 {
-		httperr.WriteErr(w, ErrLimitInvalid)
+	if p.Limit < 0 || p.Limit > facechat.MaxMessagesQuery {
+		httperr.WriteErr(w, facechat.ErrMessageLimitInvalid)
 		return
 	}
 

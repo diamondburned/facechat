@@ -156,7 +156,7 @@ func (tx *Tx) CreatePrivateRoom(targetUser facechat.ID) (*facechat.Room, error) 
 	}
 
 	room := facechat.Room{
-		Level: facechat.FullyOpen,
+		Level: facechat.Private,
 	}
 
 	if err := tx.createRoom(&room); err != nil {

@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"strings"
 
 	"github.com/diamondburned/facechat/backend/facechat"
 	"github.com/jmoiron/sqlx"
@@ -16,7 +17,6 @@ type ReadTx struct {
 func (tx *ReadTx) Session(token string) (*facechat.Session, error) {
 	// TODO: check session
 	// TODO: check expiry
-	// TODO: upgrade to writeable tx
 	return nil, errors.New("unimplemented")
 }
 
@@ -73,10 +73,14 @@ func (tx *ReadTx) relationship(self, target facechat.ID) (t facechat.Relationshi
 }
 
 func (tx *ReadTx) User(id facechat.ID) (*facechat.User, error) {
+	// TODO: to allow for anonymous peeking, this method should check if the
+	// current user actually has a relationship with this user. For this to
+	// work, there should be a RoomUser method, while this method should only
+	// return a user if mutual.
 	var user facechat.User
 
 	err := tx.tx.
-		QueryRowx("SELECT * FROM users WHERE id = ? LIMIT 1", id).
+		QueryRowx("SELECT * FROM users WHERE id = $1 LIMIT 1", id).
 		StructScan(&user)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -91,7 +95,7 @@ func (tx *ReadTx) User(id facechat.ID) (*facechat.User, error) {
 
 func (tx *ReadTx) UserAccountsLen(id facechat.ID) (n int, err error) {
 	err = tx.tx.
-		QueryRowx("SELECT COUNT(*) FROM accounts WHERE user_id = ?", id).
+		QueryRowx("SELECT COUNT(*) FROM accounts WHERE user_id = $1", id).
 		Scan(&n)
 
 	if err != nil {
@@ -103,7 +107,7 @@ func (tx *ReadTx) UserAccountsLen(id facechat.ID) (n int, err error) {
 
 func (tx *ReadTx) UserAccounts(id facechat.ID) ([]facechat.Account, error) {
 	var accounts []facechat.Account
-	rows, err := tx.tx.Queryx("SELECT * FROM accounts WHERE user_id = ?", id)
+	rows, err := tx.tx.Queryx("SELECT * FROM accounts WHERE user_id = $1", id)
 	if err != nil {
 		return nil, err
 	}
@@ -118,33 +122,132 @@ func (tx *ReadTx) UserAccounts(id facechat.ID) ([]facechat.Account, error) {
 	return accounts, nil
 }
 
+// Messages returns a list of messages ordered by oldest first.
 func (tx *ReadTx) Messages(roomID, beforeID facechat.ID, limit int) ([]facechat.Message, error) {
+	if limit < 0 || limit > facechat.MaxMessagesQuery {
+		return nil, facechat.ErrMessageLimitInvalid
+	}
+
+	if err := tx.IsInRoom(roomID); err != nil {
+		return nil, err
+	}
+
 	// https://www.the-art-of-web.com/sql/select-before-after/
-	// ORDER BY id
-	// check if userID is in room_participants first
-	panic("Implement me")
+
+	q, err := tx.tx.Queryx(`
+		SELECT * FROM messages WHERE room_id = $1 AND id > $2 LIMIT $3 ORDER BY id DESC`,
+		roomID, beforeID, limit)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to query")
+	}
+
+	defer q.Close()
+
+	var msgs []facechat.Message
+
+	for q.Next() {
+		var m facechat.Message
+		if err := q.StructScan(&m); err != nil {
+			return nil, errors.Wrap(err, "failed to scan message")
+		}
+
+		msgs = append(msgs, m)
+	}
+
+	if err := q.Err(); err != nil {
+		return nil, errors.Wrap(err, "failed to read")
+	}
+
+	return msgs, nil
 }
+
+var percEscaper = strings.NewReplacer(
+	"%", "\\%",
+	"\\", "\\\\",
+)
 
 func (tx *ReadTx) SearchRoom(query string) ([]facechat.Room, error) {
-	// LIKE topic = % || $1 || % (not sure if this is the right syntax)
-	// LIKE name  = % || $1 || %
-	// TYPE == facechat.PublicLobby (MUST DO THIS)
-	panic("Implement me")
+	query = percEscaper.Replace(query)
+
+	q, err := tx.tx.Queryx(`
+		SELECT * FROM rooms
+		WHERE  name = % || $1 || % OR TOPIC = % || $1 || % AND level < $2`,
+		query, facechat.Private)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to query")
+	}
+
+	defer q.Close()
+
+	var rooms []facechat.Room
+
+	for q.Next() {
+		var r facechat.Room
+		if err := q.StructScan(&r); err != nil {
+			return nil, errors.Wrap(err, "failed to scan room")
+		}
+
+		rooms = append(rooms, r)
+	}
+
+	if err := q.Err(); err != nil {
+		return nil, errors.Wrap(err, "failed to read")
+	}
+
+	return rooms, nil
 }
 
+// Room returns a public room. It returns an ErrRoomNotFound if the room is
+// private.
 func (tx *ReadTx) Room(roomID facechat.ID) (*facechat.Room, error) {
-	// TYPE == facechat.PublicLobby (MUST DO THIS)
-	panic("Implement me")
+	r, err := tx.room(roomID)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.Level == facechat.Private {
+		return nil, facechat.ErrRoomNotFound
+	}
+
+	return r, nil
+}
+
+func (tx *ReadTx) room(roomID facechat.ID) (*facechat.Room, error) {
+	var room facechat.Room
+
+	err := tx.tx.
+		QueryRowx("SELECT * FROM rooms WHERE id = $1", roomID).
+		StructScan(&room)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to query room")
+	}
+
+	return &room, nil
 }
 
 // IsInRoom returns nil if the user is in the room.
 func (tx *ReadTx) IsInRoom(roomID facechat.ID) error {
+	row := tx.tx.QueryRowx(
+		"SELECT COUNT(*) FROM room_participants WHERE room_id = $1 AND user_id = $2",
+		roomID, tx.UserID,
+	)
+
+	var count int
+	if err := row.Scan(&count); err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return facechat.ErrNotIn
+	}
+
 	panic("Implement me")
 }
 
 func (tx *ReadTx) RoomParticipants(roomID facechat.ID) ([]facechat.ID, error) {
-	// TYPE == facechat.PublicLobby (MUST DO THIS)
-	// room_participants
-	// check if userID is in room_participants first
+	if err := tx.IsInRoom(roomID); err != nil {
+		return nil, err
+	}
+
 	panic("Implement me")
 }
