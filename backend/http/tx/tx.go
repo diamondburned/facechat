@@ -16,7 +16,7 @@ const (
 
 var ErrMissingDB = httperr.New(500, "missing database middleware")
 
-func Middleware(db *db.Database) func(http.Handler) http.Handler {
+func Middleware(db *db.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -25,22 +25,22 @@ func Middleware(db *db.Database) func(http.Handler) http.Handler {
 	}
 }
 
-func getDB(ctx context.Context) *db.Database {
-	db, ok := ctx.Value(dbKey).(*db.Database)
+func getDB(ctx context.Context) *db.DB {
+	db, ok := ctx.Value(dbKey).(*db.DB)
 	if !ok {
 		return nil
 	}
 	return db
 }
 
-func Acquire(r *http.Request, fn func(*db.Transaction) error) error {
+func Acquire(r *http.Request, fn func(*db.Tx) error) error {
 	var db = getDB(r.Context())
 	if db == nil {
 		return ErrMissingDB
 	}
 }
 
-func RAcquire(r *http.Request, fn func(*db.ReadTransaction) error) error {
+func RAcquire(r *http.Request, fn func(*db.ReadTx) error) error {
 	var db = getDB(r.Context())
 	if db == nil {
 		return ErrMissingDB

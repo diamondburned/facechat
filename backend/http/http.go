@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi"
 )
 
-func Mount(db *db.Database) http.Handler {
+func Mount(db *db.DB) http.Handler {
 	mux := chi.NewMux()
 	mux.Use(tx.Middleware(db))
 	mux.Mount("/register", register.Mount(db))
