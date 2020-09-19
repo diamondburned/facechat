@@ -51,3 +51,47 @@ type Session struct {
 	Token  string    `json:"-" db:"token"`
 	Expiry time.Time `json:"-" db:"expiry"`
 }
+
+// RoomsPerUser is the maximum number of rooms a user can make. This may change
+// in the future.
+const RoomsPerUser = 3
+
+const MaxRoomNameLen = 64
+
+type Room struct {
+	ID    ID          `json:"id"    db:"id"`
+	Name  string      `json:"name"  db:"name"`
+	Topic string      `json:"topic" db:"topic"`
+	Level SecretLevel `json:"level" db:"level"`
+}
+
+type SecretLevel int8
+
+const (
+	// Anonymous means that no username, avatar nor any personal information is
+	// exposed. This is the equivalent of anonymous image boards.
+	Anonymous SecretLevel = iota
+	// HalfOpen exposes the username and avatar.
+	HalfOpen
+	// FullyOpen exposes all information, including social media accounts.
+	FullyOpen
+)
+
+// MaxMessageLen is the maximum number of bytes per message.
+const MaxMessageLen = 2048
+
+type Message struct {
+	ID       ID          `json:"id"        db:"id"`
+	Type     MessageType `json:"type"      db:"type"`
+	RoomID   ID          `json:"room_id"   db:"room_id"`
+	AuthorID ID          `json:"author_id" db:"author_id"`
+	Markdown string      `json:"markdown"  db:"markdown"`
+}
+
+type MessageType int8
+
+const (
+	NormalMessage MessageType = iota
+	JoinMessage
+	LeaveMessage
+)

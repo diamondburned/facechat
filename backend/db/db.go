@@ -14,28 +14,43 @@ type DB struct {
 
 const schema = `
 	CREATE TABLE IF NOT EXISTS users (
-		id    BIGINT PRIMARY KEY, -- const always
+		id    BIGINT     PRIMARY KEY, -- const always
 		pass  BINARY(40) NOT NULL,
-		name  TEXT NOT NULL,
-		email TEXT NOT NULL
+		name  TEXT       NOT NULL,
+		email TEXT       NOT NULL
 	);
 
 	CREATE TABLE IF NOT EXISTS accounts (
-		service TEXT NOT NULL,
-		name    TEXT NOT NULL,
-		url     TEXT NOT NULL,
-		data    JSON NOT NULL,
+		service TEXT   NOT NULL,
+		name    TEXT   NOT NULL,
+		url     TEXT   NOT NULL,
+		data    JSON   NOT NULL,
 		user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 
 		UNIQUE (service, user_id) -- 1 service per person
 	);
 
 	CREATE TABLE IF NOT EXISTS sessions (
-		user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-		token   TEXT NOT NULL UNIQUE,
+		user_id BIGINT    NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		token   TEXT      NOT NULL UNIQUE,
 		expiry  TIMESTAMP NOT NULL,
 
 		UNIQUE (user_id, token)
+	);
+
+	CREATE TABLE IF NOT EXISTS rooms (
+		id    BIGINT   PRIMARY KEY,
+		name  TEXT     NOT NULL,
+		topic TEXT     NOT NULL,
+		level SMALLINT NOT NULL,
+	);
+
+	CREATE TABLE IF NOT EXISTS messages (
+		id        BIGINT   PRIMARY KEY,
+		type      SMALLINT NOT NULL,
+		room_id   BIGINT   NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+		author_id BIGINT   NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+		markdown  TEXT     NOT NULL
 	);
 `
 

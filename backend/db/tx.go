@@ -72,9 +72,9 @@ func (tx *Tx) Login(email, password string) (*facechat.Session, error) {
 // 	return errors.New("unimplemented")
 // }
 
-func (tx *Tx) DeleteSession(token string) error {
-	return errors.New("unimplemented")
-}
+// func (tx *Tx) DeleteSession(token string) error {
+// 	return errors.New("unimplemented")
+// }
 
 func (tx *Tx) insertSession(user facechat.ID) (*facechat.Session, error) {
 	token, err := randToken()
@@ -98,7 +98,31 @@ func (tx *Tx) insertSession(user facechat.ID) (*facechat.Session, error) {
 	return &ses, nil
 }
 
-func (tx *Tx) AddAccount(acc facechat.Account) error {}
+func (tx *Tx) AddAccount(acc facechat.Account) error {
+	panic("Implement me")
+}
+
+func (tx *Tx) CreateRoom(name string, lvl facechat.SecretLevel) (*facechat.Room, error) {
+	_ = facechat.Room{
+		ID:    0,
+		Name:  name,
+		Level: lvl,
+	}
+	panic("Implement me")
+}
+
+func (tx *Tx) CreateMessage(room, author facechat.ID, content string) error {
+	return tx.AddMessage(facechat.Message{
+		Type:     facechat.NormalMessage,
+		RoomID:   room,
+		AuthorID: author,
+		Markdown: content,
+	})
+}
+
+func (tx *Tx) AddMessage(msg facechat.Message) error {
+	panic("Implement me")
+}
 
 type ReadTx struct {
 	tx *sqlx.Tx
