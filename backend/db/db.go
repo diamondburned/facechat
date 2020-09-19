@@ -31,7 +31,6 @@ const schema = `
 
 	CREATE TABLE IF NOT EXISTS sessions (
 		user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-		data    JSON NOT NULL,
 		token   TEXT NOT NULL UNIQUE,
 		expiry  TIMESTAMP NOT NULL,
 

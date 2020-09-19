@@ -7,6 +7,7 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/diamondburned/facechat/backend/db"
+	"github.com/pkg/errors"
 )
 
 type ctxKey int
@@ -47,17 +48,41 @@ func (s *store) Delete(token string) (err error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
 	defer cancel()
 
-	s.DB.Acquire(ctx, func(tx *db.Tx) error {
-		tx.DeleteSession()
+	err := s.DB.Acquire(ctx, func(tx *db.Tx) error {
+		return tx.DeleteSession(token)
 	})
+
+	return errors.Wrap(err, "Failed to delete token")
 }
 
 func (s *store) Find(token string) (b []byte, found bool, err error) {
+	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
+	defer cancel()
 
+	err = s.DB.RAcquire(ctx, func(tx *db.ReadTx) error {
+		s, err := tx.Session(token)
+		if err != nil {
+			return err
+		}
+
+		found = true
+		b = []byte(s.Data)
+
+		return nil
+	})
+
+	err = errors.Wrap(err, "Failed to find token")
+
+	return
 }
 
 func (s *store) Commit(token string, b []byte, expiry time.Time) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
+	defer cancel()
 
+	err := s.DB.Acquire(ctx, func(tx *db.Tx) error {
+		tx.UpdateSession()
+	})
 }
 
 // func store(db *db.DB) scs.Store {

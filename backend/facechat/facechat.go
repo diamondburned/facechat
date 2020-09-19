@@ -41,11 +41,12 @@ type Account struct {
 	UserID ID `json:"userID" db:"user_id"`
 }
 
-type Session struct {
-	UserID ID              `json:"-" db:"user_id"`
-	Data   json.RawMessage `json:"-" db:"data"`
-	Token  string          `json:"-" db:"token"`
-	Expiry time.Time       `json:"-" db:"expiry"`
+const SessionTimeout = 7 * 24 * time.Hour
 
-	User *User `json:"-" db:"-"`
+type Session struct {
+	UserID ID        `json:"-" db:"user_id"`
+	Token  string    `json:"-" db:"token"`
+	Expiry time.Time `json:"-" db:"expiry"`
+
+	User User `json:"-" db:"-"`
 }

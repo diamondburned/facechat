@@ -39,7 +39,7 @@ func (tx *Tx) Register(username, password, email string) (*facechat.User, error)
 
 func (tx *Tx) Login(email, password string) (*facechat.Session, error) {}
 
-func (tx *Tx) UpdateSession(userID facechat.ID, data []byte, expiry time.Time) error {}
+func (tx *Tx) UpdateSession(token string, expiry time.Time) error {}
 
 func (tx *Tx) DeleteSession(token string) error {}
 
