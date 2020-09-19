@@ -43,9 +43,18 @@ func newStore(db *db.DB) scs.Store {
 	return &store{db}
 }
 
-func (s *store) Delete(token string) (err error) {}
+func (s *store) Delete(token string) (err error) {
+	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
+	defer cancel()
 
-func (s *store) Find(token string) (b []byte, found bool, err error) {}
+	s.DB.Acquire(ctx, func(tx *db.Tx) error {
+		tx.DeleteSession()
+	})
+}
+
+func (s *store) Find(token string) (b []byte, found bool, err error) {
+
+}
 
 func (s *store) Commit(token string, b []byte, expiry time.Time) error {
 

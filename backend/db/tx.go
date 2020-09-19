@@ -41,8 +41,7 @@ func (tx *Tx) Login(email, password string) (*facechat.Session, error) {}
 
 func (tx *Tx) UpdateSession(userID facechat.ID, data []byte, expiry time.Time) error {}
 
-// DeleteSession should verify the given token is the user's.
-func (tx *Tx) DeleteSession(userID facechat.ID, token string) error {}
+func (tx *Tx) DeleteSession(token string) error {}
 
 type ReadTx struct {
 	tx *sqlx.Tx
