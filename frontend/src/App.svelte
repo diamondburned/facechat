@@ -53,6 +53,12 @@
 	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </svelte:head>
 
+<style>
+	.app {
+		min-height: 100vh;
+	}
+</style>
+
 <div class="app">
 	<svelte:component this={Route} />
 </div>
