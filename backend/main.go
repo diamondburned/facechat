@@ -11,8 +11,6 @@ import (
 	"github.com/diamondburned/facechat/backend/http/routes/gateway/pubsub"
 	"github.com/diamondburned/facechat/backend/internal/dotenv"
 	"github.com/go-chi/chi"
-
-	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
 func main() {

@@ -91,7 +91,7 @@ func (tx *ReadTx) User(id facechat.ID) (*facechat.User, error) {
 	var user facechat.User
 
 	err := tx.tx.
-		QueryRowx("SELECT * FROM users WHERE id = $1 LIMIT 1", id).
+		QueryRowx("SELECT id, name, email FROM users WHERE id = $1 LIMIT 1", id).
 		StructScan(&user)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

@@ -16,16 +16,18 @@ type Tx struct {
 	*ReadTx
 }
 
+const bcryptCost = 13
+
 func (tx *Tx) Register(username, password, email string) (*facechat.User, *facechat.Session, error) {
 	tx.UserID = facechat.GenerateID()
 
-	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "error hashing password")
 	}
 
 	_, err = tx.tx.Exec(
-		"INSERT INTO users(id, name, pass, email) VALUES ($1, $2)",
+		"INSERT INTO users(id, name, pass, email) VALUES ($1, $2, $3, $4)",
 		tx.UserID, username, hashed, email,
 	)
 	if err != nil {
@@ -107,7 +109,7 @@ func (tx *Tx) insertSession() (*facechat.Session, error) {
 func (tx *Tx) AddAccount(acc facechat.Account) error {
 	_, err := tx.tx.Exec(
 		"INSERT INTO accounts VALUES ($1, $2, $3, $4, $5)",
-		acc.Service, acc.Name, acc.URL, acc.Data, acc.UserID,
+		acc.Service, acc.Name, acc.URL, acc.Data, tx.UserID,
 	)
 	return errors.Wrap(err, "failed to add account")
 }

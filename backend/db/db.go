@@ -7,14 +7,16 @@ import (
 	"github.com/diamondburned/facechat/backend/facechat"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
+
+	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
 const schema = `
 	CREATE TABLE IF NOT EXISTS users (
-		id    BIGINT     PRIMARY KEY, -- const always
-		pass  BINARY(40) NOT NULL,
-		name  TEXT       NOT NULL,
-		email TEXT       NOT NULL UNIQUE
+		id    BIGINT      PRIMARY KEY, -- const always
+		pass  VARCHAR(60) NOT NULL,
+		name  TEXT        NOT NULL,
+		email TEXT        NOT NULL UNIQUE
 	);
 
 	CREATE TABLE IF NOT EXISTS relationships (
