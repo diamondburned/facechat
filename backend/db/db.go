@@ -85,12 +85,19 @@ type DB struct {
 }
 
 func Open(source string) (*DB, error) {
-	sqldb, err := sql.Open("pgx", source)
+	db, err := sqlx.Open("pgx", source)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error opening db")
 	}
-	db := sqlx.NewDb(sqldb, "pgx")
+	_, err = db.Exec(schema)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing schema")
+	}
 	return &DB{db}, nil
+}
+
+func (db *DB) Close() error {
+	return db.db.Close()
 }
 
 func (db *DB) Acquire(ctx context.Context, user facechat.ID, fn func(tx *Tx) error) error {
