@@ -117,8 +117,8 @@ func (db *DB) Acquire(ctx context.Context, user facechat.ID, fn func(tx *Tx) err
 }
 
 var txRO = &sql.TxOptions{
-	Isolation: sql.LevelReadCommitted,
-	ReadOnly:  true,
+	// Isolation: sql.LevelReadCommitted,
+	ReadOnly: true,
 }
 
 func (db *DB) RAcquire(ctx context.Context, user facechat.ID, fn func(tx *ReadTx) error) error {

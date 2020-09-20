@@ -1,8 +1,9 @@
 <script>
 	import { router, state } from "./store.js"
 	import Home from "./pages/Home.svelte"
-	import Room from "./pages/Room.svelte"
 	import Login from "./pages/Login.svelte"
+	import Register from "./pages/Register.svelte"
+	import Accounts from "./pages/Accounts.svelte"
 
 	import Navaid from "navaid"
 	import browserCookies from "browser-cookies"
@@ -19,27 +20,42 @@
 		return false
 	}
 
+	function mustNotAuth() {
+		if (browserCookies.get("token")) {
+			$router.route("/", true)
+			return true
+		}
+		return false
+	}
+
 	$router.on("/", params => {
 		if (mustAuth()) return
 
+		$state.roomID = ""
 		Route = Home
 	})
 
-	$router.on("/rooms/:roomID", params => {
+	$router.on("/:roomID", params => {
 		if (mustAuth()) return
 
-		state.roomID = params.roomID
-		Route = Room
+		$state.roomID = params.roomID
+		Route = Home
+	})
+
+	$router.on("/accounts", params => {
+		Route = Accounts
 	})
 
 	$router.on("/login", params => {
-		// Redirect to homepage if the user is logged in.
-		if (browserCookies.get("token")) {
-			$router.route("/", true)
-			return
-		}
+		if (mustNotAuth()) return
 
 		Route = Login
+	})
+
+	$router.on("/register", params => {
+		if (mustNotAuth()) return
+
+		Route = Register
 	})
 
 	$router.listen()

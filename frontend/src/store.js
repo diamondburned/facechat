@@ -1,8 +1,10 @@
 import Navaid from "navaid"
+import State from "./state.js"
+import Gateway from "./gateway.js"
 import { writable } from "svelte/store"
-import { State } from "./state.js"
-import { Gateway } from "./gateway.js"
+
+const internalState = State()
 
 export const router = writable(Navaid("/"))
-export const state = writable(new State())
-export const gateway = writable(new Gateway(state))
+export const state = writable(internalState)
+export const gateway = writable(Gateway(internalState))

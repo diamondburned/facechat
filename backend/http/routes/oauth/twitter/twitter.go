@@ -5,15 +5,15 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/dghubble/gologin"
-	"github.com/dghubble/gologin/twitter"
+	"github.com/dghubble/gologin/v2"
+	"github.com/dghubble/gologin/v2/twitter"
 	"github.com/dghubble/oauth1"
 	"github.com/diamondburned/facechat/backend/db"
+	"github.com/diamondburned/facechat/backend/dotenv"
 	"github.com/diamondburned/facechat/backend/facechat"
 	"github.com/diamondburned/facechat/backend/http/addr"
 	"github.com/diamondburned/facechat/backend/http/auth"
 	"github.com/diamondburned/facechat/backend/http/tx"
-	"github.com/diamondburned/facechat/backend/dotenv"
 	"github.com/diamondburned/facechat/backend/internal/httperr"
 	"github.com/go-chi/chi"
 	"github.com/pkg/errors"
@@ -44,7 +44,6 @@ func init() {
 
 func Mount() http.Handler {
 	r := chi.NewMux()
-	r.Use(auth.Require())
 	r.Mount("/login", twitter.LoginHandler(&cfg, http.HandlerFunc(onError)))
 	r.Mount("/callback", twitter.CallbackHandler(
 		&cfg,

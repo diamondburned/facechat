@@ -1,36 +1,48 @@
-export class Gateway {
-	constructor(state) {
-		this.state = state
-		this.eventHandlers = []
+export default function Gateway(state) {
+	let properties = {
+		ws: null,
+		state: state,
+		eventHandlers: [],
 	}
 
-	open(onDone) {
-		this.ws = new WebSocket("/api/gateway")
-		this.ws.addEventListener("message", (event) => {
+	properties.open = function (onDone, onError) {
+		if (properties.ws) return
+
+		properties.ws = new WebSocket(`ws://${location.host}/api/gateway`)
+		properties.ws.addEventListener("message", (event) => {
 			let ev = JSON.parse(event.data)
 
-			switch (ev.d) {
+			switch (ev.e) {
 				case "Ready":
-					this.store.me = ev.me
-					this.store.rooms = ev.public_rooms
-					this.store.privateRooms = ev.private_rooms
+					properties.state.me = ev.d.me
+					properties.state.rooms = ev.d.public_rooms
+					properties.state.privateRooms = ev.d.private_rooms
+
+					if (onDone) onDone(ev.d)
+
+					properties.ws.send(JSON.stringify({ e: "Hello" }))
 					break
+
 				case "Message":
-					var msgs = [ev.d, ...this.store.roomMessages[this.store.roomID]]
+					var msgs = [
+						ev.d,
+						...properties.state.roomMessages[properties.state.roomID],
+					]
 					if (msgs.length > 35) {
 						msgs = msgs.slice(0, 35)
 					}
-					this.store.roomMessages[this.store.roomID] = msgs
+					properties.state.roomMessages[properties.state.roomID] = msgs
 					break
 			}
 		})
-
-		if (onDone) {
-			this.ws.addEventListener("open", onDone)
-		}
+		properties.ws.addEventListener("error", (event) => {
+			if (onError) onError(event)
+		})
 	}
 
-	close() {
-		this.ws.close()
+	properties.close = function () {
+		properties.ws.close()
 	}
+
+	return properties
 }

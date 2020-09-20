@@ -21,11 +21,10 @@ func (tx *ReadTx) Session(token string) (*facechat.Session, error) {
 	}
 
 	r := tx.tx.QueryRowx(
-		"SELECT (user_id, expiry) FROM sessions WHERE token = $1",
+		"SELECT user_id, expiry FROM sessions WHERE token = $1",
 		token,
 	)
-	if err := r.StructScan(&s); err != nil {
-		// return nil, errors.Wrap(err, "failed to scan session")
+	if err := r.Scan(&s.UserID, &s.Expiry); err != nil {
 		return nil, facechat.ErrUnknownSession
 	}
 
@@ -117,11 +116,21 @@ func (tx *ReadTx) UserAccountsLen(id facechat.ID) (n int, err error) {
 }
 
 func (tx *ReadTx) UserAccounts(id facechat.ID) ([]facechat.Account, error) {
-	var accounts []facechat.Account
+	if tx.UserID != id {
+		if err := tx.IsMutual(id); err != nil {
+			return nil, facechat.ErrNotMutual
+		}
+	}
+
 	rows, err := tx.tx.Queryx("SELECT * FROM accounts WHERE user_id = $1", id)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "query error")
 	}
+
+	defer rows.Close()
+
+	var accounts = []facechat.Account{}
+
 	for rows.Next() {
 		var account facechat.Account
 		err := rows.StructScan(&account)
@@ -130,6 +139,11 @@ func (tx *ReadTx) UserAccounts(id facechat.ID) ([]facechat.Account, error) {
 		}
 		accounts = append(accounts, account)
 	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "rows error")
+	}
+
 	return accounts, nil
 }
 
@@ -144,7 +158,7 @@ func (tx *ReadTx) Messages(roomID, beforeID facechat.ID, limit int) ([]facechat.
 	}
 
 	q, err := tx.tx.Queryx(`
-		SELECT * FROM messages WHERE room_id = $1 AND id > $2 LIMIT $3 ORDER BY id DESC`,
+		SELECT * FROM messages WHERE room_id = $1 AND id > $2 ORDER BY id DESC LIMIT $3`,
 		roomID, beforeID, limit)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to query")
@@ -152,7 +166,7 @@ func (tx *ReadTx) Messages(roomID, beforeID facechat.ID, limit int) ([]facechat.
 
 	defer q.Close()
 
-	var msgs []facechat.Message
+	var msgs = []facechat.Message{}
 
 	for q.Next() {
 		var m facechat.Message
@@ -180,7 +194,7 @@ func (tx *ReadTx) SearchRoom(query string) ([]facechat.Room, error) {
 
 	q, err := tx.tx.Queryx(`
 		SELECT * FROM rooms
-		WHERE  name = % || $1 || % OR TOPIC = % || $1 || % AND level < $2`,
+		WHERE (name ILIKE '%' || $1 || '%' OR topic ILIKE '%' || $1 || '%') AND level < $2`,
 		query, facechat.Private)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to query")
@@ -188,7 +202,7 @@ func (tx *ReadTx) SearchRoom(query string) ([]facechat.Room, error) {
 
 	defer q.Close()
 
-	var rooms []facechat.Room
+	var rooms = []facechat.Room{}
 
 	for q.Next() {
 		var r facechat.Room
@@ -262,7 +276,7 @@ func (tx *ReadTx) JoinedRooms() ([]facechat.Room, error) {
 
 	defer q.Close()
 
-	var rooms []facechat.Room
+	var rooms = []facechat.Room{}
 
 	for q.Next() {
 		var room facechat.Room
@@ -291,7 +305,7 @@ func (tx *ReadTx) PrivateRooms() ([]facechat.PrivateRoom, error) {
 
 	defer q.Close()
 
-	var rooms []facechat.PrivateRoom
+	var rooms = []facechat.PrivateRoom{}
 
 	for q.Next() {
 		var room facechat.PrivateRoom
@@ -320,7 +334,7 @@ func (tx *ReadTx) RoomParticipants(roomID facechat.ID) ([]facechat.ID, error) {
 
 	defer q.Close()
 
-	var partics []facechat.ID
+	var partics = []facechat.ID{}
 
 	for q.Next() {
 		var id facechat.ID

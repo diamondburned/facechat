@@ -21,7 +21,8 @@ type Collection struct {
 
 func NewCollection(db *db.DB) *Collection {
 	return &Collection{
-		PubSub: pubsub.New(Capacity),
+		PubSub:  pubsub.New(Capacity),
+		clients: map[facechat.ID]*Client{},
 	}
 }
 

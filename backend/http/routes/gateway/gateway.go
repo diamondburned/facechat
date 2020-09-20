@@ -62,9 +62,20 @@ func upgrade(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 
+	var stop = c.Background()
+
+	c.Events <- ready
+
 	coll := pubsub.RequestCollection(r)
 	coll.Register(c)
 	defer coll.Unregister(c.UserID)
 
-	c.Start()
+	for _, room := range ready.PublicRooms {
+		coll.SubscribeRoom(c.UserID, room.ID)
+	}
+	for _, room := range ready.PrivateRooms {
+		coll.SubscribeRoom(c.UserID, room.RoomID)
+	}
+
+	<-stop
 }

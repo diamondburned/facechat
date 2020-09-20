@@ -20,7 +20,7 @@ import (
 func Mount() http.Handler {
 	r := chi.NewMux()
 	r.Use(auth.Require())
-	r.Get("/", searchRoom) // TODO: aggregate room w/ the most people
+	r.With(form.AlwaysParse).Get("/", searchRoom) // TODO: aggregate room w/ the most people
 	r.Post("/", createPublicLobby)
 	r.Route(roomid.Route, func(r chi.Router) {
 		r.Mount("/messages", message.Mount())

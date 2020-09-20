@@ -7,7 +7,6 @@ import (
 
 	"github.com/diamondburned/facechat/backend/db"
 	"github.com/diamondburned/facechat/backend/facechat"
-	"github.com/diamondburned/facechat/backend/http/auth"
 	"github.com/diamondburned/facechat/backend/http/routes/gateway/pubsub"
 	"github.com/diamondburned/facechat/backend/http/routes/room/roomid"
 	"github.com/diamondburned/facechat/backend/http/tx"
@@ -20,7 +19,6 @@ import (
 func Mount() http.Handler {
 	r := chi.NewMux()
 	r.Use(form.AlwaysParse)
-	r.Use(auth.Require())
 
 	r.Get("/", listMessages)
 	r.Post("/", createMessage)

@@ -1,6 +1,7 @@
 package pubsub
 
 import (
+	"log"
 	"net/http"
 	"sync"
 
@@ -9,10 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  4096,
-	WriteBufferSize: 4096,
-}
+var upgrader = websocket.Upgrader{}
 
 type Client struct {
 	UserID facechat.ID
@@ -42,20 +40,39 @@ func (c *Client) Connect(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (c *Client) Close() error {
+	close(c.Events)
 	return c.conn.Close()
 }
 
-func (c *Client) Start() error {
-	for ev := range c.Events {
-		e, err := NewEvent(ev)
-		if err != nil {
-			return errors.Wrap(err, "failed to make event")
-		}
+func (c *Client) Background() <-chan struct{} {
+	var stop = make(chan struct{})
 
-		if err := c.conn.WriteJSON(e); err != nil {
-			return errors.Wrap(err, "failed to write JSON")
-		}
-	}
+	go func() {
+		for ev := range c.Events {
+			e, err := NewEvent(ev)
+			if err != nil {
+				stop <- struct{}{}
+				return
+			}
 
-	return nil
+			if err := c.conn.WriteJSON(e); err != nil {
+				stop <- struct{}{}
+				return
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			_, b, err := c.conn.ReadMessage()
+			if err != nil {
+				stop <- struct{}{}
+				return
+			}
+
+			log.Println("Received", string(b))
+		}
+	}()
+
+	return stop
 }

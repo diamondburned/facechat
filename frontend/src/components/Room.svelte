@@ -2,37 +2,44 @@
 	import { state } from "../store.js"
 	import { onMount } from "svelte"
 
+	import Loading from "../components/Loading.svelte"
 	import Message from "../components/Message.svelte"
 	import Error from "../components/Error.svelte"
 
 	import SimpleMDE from "simplemde"
 	import marked from "../marked.js"
 
-	let room     = $state.room[$state.roomID],
-		messages = $state.roomMessages[state.roomID],
-		editor,
+	let editor,
 		message,
-		error
+		error,
+		simplemde
 
-	onMount(async () => {
-		// Update the state.
-		try {
-			await Promise.all([
-				$state.currentRoom(),
-				$state.currentMessages(),
-			])
+	$: if (editor) {
+		simplemde = new SimpleMDE({
+			element: editor,
+			toolbar: false,
+			status: false,
+			placeholder: "Send a message...",
+			previewRender: (text) => marked(text),
+		})
+	}
 
-			let simplemde = new SimpleMDE({
-				element: editor,
-				toolbar: false,
-				status: false,
-				placeholder: "Send a message...",
-				previewRender: (text) => marked(text),
-			})
-		} catch(err) {
-			error = err
-		}
-	})
+	$: room = $state.room[$state.roomID]
+	$: messages = $state.roomMessages[$state.roomID]
+
+	$: if ($state.roomID != "") {
+		(async () => {
+			// Update the state.
+			try {
+				await Promise.all([
+					$state.currentRoom(),
+					$state.currentMessages(),
+				])
+			} catch(err) {
+				error = err
+			}
+		})()
+	}
 
 	function sendMessage(e) {
 		if (e.keyCode === 13 && !e.shiftKey) {
@@ -48,7 +55,7 @@
 	}
 </script>
 
-<div id={room ? room.id : null} class="room">
+<div id={room ? room.id : null} class="room column col-9">
 	{#if error}
 		<Error {error} />
 	{:else}
@@ -82,12 +89,11 @@
 				</div>
 				<textarea
 					id="message-editor" class="message-editor"
-					placeholder="Message to #{room.name}"
 					bind:this={editor} bind:value={message}
 					on:keypress={sendMessage}
 				/>
 			{:else}
-				<div class="loading loading-lg"></div>
+				<Loading />
 			{/if}
 		</main>
 	{/if}

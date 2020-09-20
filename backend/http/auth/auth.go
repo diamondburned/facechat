@@ -22,9 +22,18 @@ func Require() func(http.Handler) http.Handler {
 	return require(true)
 }
 
+func RequireUnverified() func(http.Handler) http.Handler {
+	return require(false)
+}
+
 func require(verifyAccounts bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Prevent the same session from being obtained twice.
+			if Session(r) != nil {
+				return
+			}
+
 			c, err := r.Cookie("token")
 			if err != nil {
 				httperr.WriteErr(w, ErrTokenNotFound)
@@ -85,16 +94,16 @@ func WriteSession(w http.ResponseWriter, s *facechat.Session) {
 		Value:    s.Token,
 		Path:     "/",
 		Expires:  s.Expiry,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteLaxMode, // TODO: MAJOR CSRF RISK!!!!!!! Required for OAuth.
 	})
 }
 
-func Session(r *http.Request) *facechat.Account {
+func Session(r *http.Request) *facechat.Session {
 	return SessionFromCtx(r.Context())
 }
 
-func SessionFromCtx(ctx context.Context) *facechat.Account {
-	sm, ok := ctx.Value(sessionKey).(*facechat.Account)
+func SessionFromCtx(ctx context.Context) *facechat.Session {
+	sm, ok := ctx.Value(sessionKey).(*facechat.Session)
 	if !ok {
 		return nil
 	}

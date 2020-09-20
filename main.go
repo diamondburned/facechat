@@ -13,10 +13,11 @@ import (
 	"github.com/diamondburned/facechat/backend/http/addr"
 	"github.com/diamondburned/facechat/backend/http/routes/gateway/pubsub"
 	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 )
 
 func main() {
-	sh("cd frontend && npm run build")
+	sh("cd frontend && npm run quiet")
 
 	d, err := db.Open(dotenv.Getenv("SQL_ADDRESS"))
 	if err != nil {
@@ -26,10 +27,13 @@ func main() {
 	c := pubsub.NewCollection(d)
 
 	r := chi.NewMux()
+	r.Use(middleware.Logger)
 	r.Mount("/api", http.Mount(d, c))
-	r.Mount("/", nethttp.FileServer(nethttp.Dir("./frontend/dist/")))
+	r.Handle("/*", nethttp.FileServer(nethttp.Dir("./frontend/dist/")))
 
 	h := addr.HTTP()
+
+	log.Println("Serving at", h.Host)
 
 	if err := nethttp.ListenAndServe(h.Host, r); err != nil {
 		log.Fatalln("Failed to listen:", err)

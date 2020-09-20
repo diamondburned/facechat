@@ -14,14 +14,11 @@
 	span.material-icons {
 		font-size: 5em;
 		color: darkred;
-	}
-
-	small.error-msg {
-		margin: 1em 0;
+		margin-bottom: 15px;
 	}
 </style>
 
 <div class="error">
-	<span  class="material-icons">error</span>
+	<span class="material-icons">error</span>
 	<small class="error-msg">{error}</small>
 </div>

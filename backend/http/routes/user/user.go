@@ -19,9 +19,26 @@ func Mount() http.Handler {
 	r.Use(auth.Require())
 	r.Route("/{user}", func(r chi.Router) {
 		r.Get("/", user)
+		r.Get("/accounts", accounts)
 	})
 
 	return r
+}
+
+func userID(r *http.Request) (facechat.ID, error) {
+	s := auth.Session(r)
+	u := chi.URLParam(r, "user")
+
+	if u == "@me" {
+		return s.UserID, nil
+	}
+
+	i, err := strconv.ParseUint(u, 10, 64)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to parse ID")
+	}
+
+	return facechat.ID(i), nil
 }
 
 type UserResponse struct {
@@ -30,27 +47,18 @@ type UserResponse struct {
 }
 
 func user(w http.ResponseWriter, r *http.Request) {
-	var user = chi.URLParam(r, "user")
-
-	var s = auth.Session(r)
 	var u = UserResponse{}
 
-	err := tx.RAcquire(r, func(tx *db.ReadTx) (err error) {
-		switch user {
-		case "@me":
-			u.User, err = tx.User(s.UserID)
-		default:
-			i, err := strconv.ParseUint(user, 10, 64)
-			if err != nil {
-				return errors.Wrap(err, "failed to parse ID")
-			}
+	i, err := userID(r)
+	if err != nil {
+		httperr.WriteErr(w, err)
+		return
+	}
 
-			u.User, err = tx.User(facechat.ID(i))
-		}
-
+	err = tx.RAcquire(r, func(tx *db.ReadTx) (err error) {
+		u.User, err = tx.User(i)
 		if err != nil {
-			err = errors.Wrap(err, "failed to get user")
-			return
+			return errors.Wrap(err, "failed to get user")
 		}
 
 		u.Accounts, err = tx.UserAccounts(u.User.ID)
@@ -65,6 +73,33 @@ func user(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewEncoder(w).Encode(u); err != nil {
+		httperr.WriteErr(w, errors.Wrap(err, "failed to encode JSON"))
+	}
+}
+
+func accounts(w http.ResponseWriter, r *http.Request) {
+	i, err := userID(r)
+	if err != nil {
+		httperr.WriteErr(w, err)
+		return
+	}
+
+	var accounts []facechat.Account
+
+	err = tx.RAcquire(r, func(tx *db.ReadTx) (err error) {
+		accounts, err = tx.UserAccounts(i)
+		if err != nil {
+			return errors.Wrap(err, "failed to get user accounts")
+		}
+		return nil
+	})
+
+	if err != nil {
+		httperr.WriteErr(w, err)
+		return
+	}
+
+	if err := json.NewEncoder(w).Encode(accounts); err != nil {
 		httperr.WriteErr(w, errors.Wrap(err, "failed to encode JSON"))
 	}
 }

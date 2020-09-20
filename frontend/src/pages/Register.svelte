@@ -1,5 +1,6 @@
 <script>
 	let email = "",
+		username = "",
 		password = "",
 		error
 
@@ -9,10 +10,11 @@
 
 	async function submit() {
 		try {
-			let resp = await fetchx("/api/login", {
+			let resp = await fetchx("/api/register", {
 				method: "POST",
 				body: JSON.stringify({
 					email: email,
+					username: username,
 					password: password,
 				}),
 			})
@@ -22,14 +24,10 @@
 			error = err
 		}
 	}
-
-	function register() {
-		$router.route("/register", true)
-	}
 </script>
 
 <style>
-	div.login {
+	div.register {
 		height: 100vh;
 		display: flex;
 		align-items: center;
@@ -44,12 +42,16 @@
 {#if error}
 	<Error {error} />
 {:else}
-	<div class="login">
+	<div class="register">
 		<form on:submit|preventDefault={submit}>
 			<div class="form-group">
+				<label class="form-label" for="username">Username</label>
+				<input class="form-input" type="text" id="username" required
+					   bind:value={username}
+				>
+
 				<label class="form-label" for="email">Email</label>
 				<input class="form-input" type="text" id="email" required
-					   placeholder="somebody@something.com"
 					   bind:value={email}
 				>
 			
@@ -60,8 +62,7 @@
 			</div>
 
 			<div class="form-group">
-				<button type="button" class="btn" on:click={register}>Register</button>
-				<button type="submit" class="btn btn-primary">Log in</button>
+				<button type="submit" class="btn btn-primary">Register</button>
 			</div>
 		</form>
 	</div>

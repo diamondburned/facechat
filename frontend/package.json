@@ -4,7 +4,8 @@
 	"description": "Svelte frontend for Facechat",
 	"scripts": {
 		"build": "cross-env NODE_ENV=production webpack",
-		"dev": "cross-env NODE_ENV=development webpack --no-info"
+		"quiet": "cross-env NODE_ENV=development webpack --display=minimal",
+		"dev": "webpack-dev-server --content-base public --history-api-fallback"
 	},
 	"author": "",
 	"license": "AGPL-3.0-only",
@@ -27,8 +28,10 @@
 		"escape-html": "^1.0.3",
 		"marked": "^1.1.1",
 		"navaid": "^1.0.5",
+		"simple-icons": "^3.8.0",
 		"simplemde": "^1.11.2",
-		"spectre.css": "^0.5.9"
+		"spectre.css": "^0.5.9",
+		"throttle-debounce": "^2.3.0"
 	},
 	"prettier": {
 		"useTabs": true,

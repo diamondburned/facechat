@@ -11,7 +11,7 @@ import (
 
 func Mount() http.Handler {
 	r := chi.NewMux()
-	r.Use(auth.Require())
+	r.Use(auth.RequireUnverified())
 	r.Mount("/github", github.Mount())
 	r.Mount("/twitter", twitter.Mount())
 	return r
