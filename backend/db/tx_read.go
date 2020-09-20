@@ -252,6 +252,8 @@ func (tx *ReadTx) IsInRoom(roomID facechat.ID) error {
 	return facechat.ErrNotInRoom
 }
 
+func (tx *ReadTx) JoinedRooms() ([]facechat.Room, error) {}
+
 // func (tx *ReadTx) RoomParticipants(roomID facechat.ID) ([]facechat.ID, error) {
 // 	if err := tx.IsInRoom(roomID); err != nil {
 // 		return nil, err
