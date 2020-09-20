@@ -46,12 +46,11 @@ func listMessages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	roomID := roomid.Get(r)
-	s := auth.Session(r)
 
 	var msgs []facechat.Message
 
 	err := tx.RAcquire(r, func(tx *db.ReadTx) (err error) {
-		msgs, err = tx.Messages(s.UserID, roomID, p.Before, p.Limit)
+		msgs, err = tx.Messages(roomID, p.Before, p.Limit)
 		if err != nil {
 			err = errors.Wrap(err, "failed to get messages")
 		}
@@ -83,12 +82,11 @@ func createMessage(w http.ResponseWriter, r *http.Request) {
 	cj.Markdown = html.EscapeString(cj.Markdown)
 
 	roomID := roomid.Get(r)
-	s := auth.Session(r)
 
 	var msg *facechat.Message
 
 	err := tx.Acquire(r, func(tx *db.Tx) (err error) {
-		msg, err = tx.CreateMessage(roomID, s.UserID, cj.Markdown)
+		msg, err = tx.CreateMessage(roomID, cj.Markdown)
 		if err != nil {
 			err = errors.Wrap(err, "failed to create message")
 		}

@@ -11,13 +11,13 @@ import (
 	"github.com/diamondburned/facechat/backend/http/routes/register"
 	"github.com/diamondburned/facechat/backend/http/routes/room"
 	"github.com/diamondburned/facechat/backend/http/routes/user"
-	"github.com/diamondburned/facechat/backend/http/tx"
+	"github.com/diamondburned/facechat/backend/http/tx/dbctx"
 	"github.com/go-chi/chi"
 )
 
 func Mount(db *db.DB, coll *pubsub.Collection) http.Handler {
 	mux := chi.NewMux()
-	mux.Use(tx.Middleware(db))
+	mux.Use(dbctx.Middleware(db))
 	mux.Use(pubsub.UseCollection(coll))
 
 	mux.Mount("/register", register.Mount())

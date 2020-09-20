@@ -76,8 +76,6 @@ func createPublicLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s := auth.Session(r)
-
 	var room *facechat.Room
 	err := tx.Acquire(r, func(tx *db.Tx) (err error) {
 		room, err = tx.CreatePublicLobby(cj.Name, cj.Level)
@@ -85,7 +83,7 @@ func createPublicLobby(w http.ResponseWriter, r *http.Request) {
 			return errors.Wrap(err, "failed to get room")
 		}
 
-		if err := tx.JoinRoom(room.ID, s.UserID); err != nil {
+		if err := tx.JoinRoom(room.ID); err != nil {
 			return errors.Wrap(err, "failed to join newly created room")
 		}
 
@@ -129,7 +127,7 @@ func joinRoom(w http.ResponseWriter, r *http.Request) {
 	s := auth.Session(r)
 
 	err := tx.Acquire(r, func(tx *db.Tx) (err error) {
-		err = tx.JoinRoom(roomID, s.UserID)
+		err = tx.JoinRoom(roomID)
 		err = errors.Wrap(err, "failed to join room")
 		return
 	})
@@ -148,7 +146,7 @@ func leaveRoom(w http.ResponseWriter, r *http.Request) {
 	s := auth.Session(r)
 
 	err := tx.Acquire(r, func(tx *db.Tx) (err error) {
-		err = tx.LeaveRoom(roomID, s.UserID)
+		err = tx.LeaveRoom(roomID)
 		err = errors.Wrap(err, "failed to leave room")
 		return
 	})

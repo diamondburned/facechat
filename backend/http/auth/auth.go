@@ -6,7 +6,7 @@ import (
 
 	"github.com/diamondburned/facechat/backend/db"
 	"github.com/diamondburned/facechat/backend/facechat"
-	"github.com/diamondburned/facechat/backend/http/tx"
+	"github.com/diamondburned/facechat/backend/http/tx/dbctx"
 	"github.com/diamondburned/facechat/backend/internal/httperr"
 )
 
@@ -31,8 +31,13 @@ func require(verifyAccounts bool) func(http.Handler) http.Handler {
 				return
 			}
 
+			// Get the database and manually acquire a transaction without
+			// package tx to avoid cyclical dependencies.
+			d := dbctx.Database(r)
+
 			var s *facechat.Session
-			err = tx.RAcquire(r, func(tx *db.ReadTx) (err error) {
+
+			err = d.RAcquire(r.Context(), 0, func(tx *db.ReadTx) (err error) {
 				s, err = tx.Session(c.Value)
 				if err != nil {
 					return err
