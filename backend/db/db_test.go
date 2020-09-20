@@ -65,10 +65,10 @@ func TestDB(t *testing.T) {
 }
 
 func testAddAccounts(tx *Tx) error {
-	if err := tx.AddAccount(facechat.Account{Name: "GitHub"}); err != nil {
+	if err := tx.AddAccount(facechat.Account{Service: "GitHub"}); err != nil {
 		return err
 	}
-	return tx.AddAccount(facechat.Account{Name: "Twitter"})
+	return tx.AddAccount(facechat.Account{Service: "Twitter"})
 }
 
 func testLogin(tx *Tx) error {
