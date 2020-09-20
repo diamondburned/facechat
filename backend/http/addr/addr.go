@@ -3,7 +3,8 @@ package addr
 import (
 	"log"
 	"net/url"
-	"os"
+
+	"github.com/diamondburned/facechat/backend/internal/dotenv"
 )
 
 var http url.URL
@@ -21,7 +22,7 @@ func init() {
 }
 
 func loadURL() {
-	addr := os.Getenv("HTTP_ADDRESS")
+	addr := dotenv.Getenv("HTTP_ADDRESS")
 	if addr == "" {
 		log.Fatalln("Missing $HTTP_ADDRESS")
 	}

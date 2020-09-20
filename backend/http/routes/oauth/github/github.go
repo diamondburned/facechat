@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/dghubble/gologin"
 	"github.com/dghubble/gologin/github"
@@ -14,6 +13,7 @@ import (
 	"github.com/diamondburned/facechat/backend/http/addr"
 	"github.com/diamondburned/facechat/backend/http/auth"
 	"github.com/diamondburned/facechat/backend/http/tx"
+	"github.com/diamondburned/facechat/backend/internal/dotenv"
 	"github.com/diamondburned/facechat/backend/internal/httperr"
 	"github.com/drexedam/gravatar"
 	"github.com/go-chi/chi"
@@ -32,12 +32,12 @@ var cookieCfg = gologin.CookieConfig{
 var cfg = oauth2.Config{}
 
 func init() {
-	cfg.ClientID = os.Getenv("GITHUB_CLIENT_ID")
+	cfg.ClientID = dotenv.Getenv("GITHUB_CLIENT_ID")
 	if cfg.ClientID == "" {
 		log.Fatalln("Missing $GITHUB_CLIENT_ID")
 	}
 
-	cfg.ClientSecret = os.Getenv("GITHUB_CLIENT_SECRET")
+	cfg.ClientSecret = dotenv.Getenv("GITHUB_CLIENT_SECRET")
 	if cfg.ClientSecret == "" {
 		log.Fatalln("Missing $GITHUB_CLIENT_SECRET")
 	}

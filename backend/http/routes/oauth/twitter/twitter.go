@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/dghubble/gologin"
 	"github.com/dghubble/gologin/twitter"
@@ -14,6 +13,7 @@ import (
 	"github.com/diamondburned/facechat/backend/http/addr"
 	"github.com/diamondburned/facechat/backend/http/auth"
 	"github.com/diamondburned/facechat/backend/http/tx"
+	"github.com/diamondburned/facechat/backend/internal/dotenv"
 	"github.com/diamondburned/facechat/backend/internal/httperr"
 	"github.com/go-chi/chi"
 	"github.com/pkg/errors"
@@ -24,12 +24,12 @@ import (
 var cfg = oauth1.Config{}
 
 func init() {
-	cfg.ConsumerKey = os.Getenv("TWITTER_CONSUMER_KEY")
+	cfg.ConsumerKey = dotenv.Getenv("TWITTER_CONSUMER_KEY")
 	if cfg.ConsumerKey == "" {
 		log.Fatalln("Missing $TWITTER_CONSUMER_KEY")
 	}
 
-	cfg.ConsumerSecret = os.Getenv("TWITTER_CONSUMER_SECRET")
+	cfg.ConsumerSecret = dotenv.Getenv("TWITTER_CONSUMER_SECRET")
 	if cfg.ConsumerSecret == "" {
 		log.Fatalln("Missing $TWITTER_CONSUMER_SECRET")
 	}

@@ -1,5 +1,6 @@
 export class State {
 	constructor() {
+		this.me = {}
 		this.roomID = 0
 		this.rooms = {}
 		this.roomMessages = {} // map[id][]Messages

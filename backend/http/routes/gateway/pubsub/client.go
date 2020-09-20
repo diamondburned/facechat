@@ -14,6 +14,9 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 4096,
 }
 
+type Ready struct {
+}
+
 type Client struct {
 	UserID facechat.ID
 	Events chan interface{}
