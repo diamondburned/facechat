@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/url"
 
-	"github.com/diamondburned/facechat/backend/internal/dotenv"
+	"github.com/diamondburned/facechat/backend/dotenv"
 )
 
 var http url.URL

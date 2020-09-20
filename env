@@ -1,0 +1,7 @@
+SQL_ADDRESS="host=/var/run/postgresql user=diamond dbname=facechat sslmode=disable"
+TEST_SQL_ADDRESS="host=/var/run/postgresql user=diamond dbname=facechat sslmode=disable"
+HTTP_ADDRESS="http://localhost:42069"
+GITHUB_CLIENT_ID="Iv1.dc31419cb83d9a84"
+GITHUB_CLIENT_SECRET="fc1bb73b504f83bdda93c74a5e4ea7ef150a243a"
+TWITTER_CONSUMER_KEY="2idt0BbhEnHOXXg0ZZWDZY6ci"
+TWITTER_CONSUMER_SECRET="eFIQleWwMqRNgpkeEZ8yOT2VbiP4zCpg2ywAh6DNku3cQKyPyq"

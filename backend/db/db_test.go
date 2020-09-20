@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/diamondburned/facechat/backend/facechat"
-	"github.com/diamondburned/facechat/backend/internal/dotenv"
+	"github.com/diamondburned/facechat/backend/dotenv"
 )
 
 func TestDB(t *testing.T) {

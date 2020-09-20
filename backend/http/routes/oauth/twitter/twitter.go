@@ -13,7 +13,7 @@ import (
 	"github.com/diamondburned/facechat/backend/http/addr"
 	"github.com/diamondburned/facechat/backend/http/auth"
 	"github.com/diamondburned/facechat/backend/http/tx"
-	"github.com/diamondburned/facechat/backend/internal/dotenv"
+	"github.com/diamondburned/facechat/backend/dotenv"
 	"github.com/diamondburned/facechat/backend/internal/httperr"
 	"github.com/go-chi/chi"
 	"github.com/pkg/errors"

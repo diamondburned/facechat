@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sort"
 	"sync"
 
 	"github.com/joho/godotenv"
@@ -26,8 +25,6 @@ func load() {
 	if err != nil {
 		log.Fatalln("Failed to get env* files:", err)
 	}
-
-	sort.Sort(sort.Reverse((sort.StringSlice(d))))
 
 	for _, f := range d {
 		log.Println("Loading", f)
