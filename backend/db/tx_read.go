@@ -252,14 +252,88 @@ func (tx *ReadTx) IsInRoom(roomID facechat.ID) error {
 	return facechat.ErrNotInRoom
 }
 
-func (tx *ReadTx) JoinedRooms() ([]facechat.Room, error) {}
+func (tx *ReadTx) JoinedRooms() ([]facechat.Room, error) {
+	q, err := tx.tx.Queryx(`SELECT * FROM rooms
+		WHERE id = (SELECT room_id FROM room_participants WHERE user_id = $1)`,
+		tx.UserID)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to query")
+	}
 
-func (tx *ReadTx) PrivateRooms() ([]facechat.Room, error) {}
+	defer q.Close()
 
-// func (tx *ReadTx) RoomParticipants(roomID facechat.ID) ([]facechat.ID, error) {
-// 	if err := tx.IsInRoom(roomID); err != nil {
-// 		return nil, err
-// 	}
+	var rooms []facechat.Room
 
-// 	panic("Implement me")
-// }
+	for q.Next() {
+		var room facechat.Room
+		if err := q.StructScan(&room); err != nil {
+			return nil, errors.Wrap(err, "failed to scan room")
+		}
+
+		rooms = append(rooms, room)
+	}
+
+	if err := q.Err(); err != nil {
+		return nil, errors.Wrap(err, "failed to read")
+	}
+
+	return rooms, nil
+}
+
+func (tx *ReadTx) PrivateRooms() ([]facechat.PrivateRoom, error) {
+	q, err := tx.tx.Queryx(`
+		SELECT * FROM private_rooms
+		WHERE recipient1 = $1 || recipient2 = $1`,
+		tx.UserID)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to query")
+	}
+
+	defer q.Close()
+
+	var rooms []facechat.PrivateRoom
+
+	for q.Next() {
+		var room facechat.PrivateRoom
+		if err := q.StructScan(&room); err != nil {
+			return nil, errors.Wrap(err, "failed to scan private room")
+		}
+
+		rooms = append(rooms, room)
+	}
+
+	if err := q.Err(); err != nil {
+		return nil, errors.Wrap(err, "failed to read")
+	}
+
+	return rooms, nil
+}
+
+func (tx *ReadTx) RoomParticipants(roomID facechat.ID) ([]facechat.ID, error) {
+	q, err := tx.tx.Queryx(`
+		SELECT user_id FROM room_participants
+		WHERE room_id = $1`,
+		roomID)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to query")
+	}
+
+	defer q.Close()
+
+	var partics []facechat.ID
+
+	for q.Next() {
+		var id facechat.ID
+		if err := q.Scan(&id); err != nil {
+			return nil, errors.Wrap(err, "failed to scan room participant id")
+		}
+
+		partics = append(partics, id)
+	}
+
+	if err := q.Err(); err != nil {
+		return nil, errors.Wrap(err, "failed to read")
+	}
+
+	return partics, nil
+}
