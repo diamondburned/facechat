@@ -15,8 +15,9 @@ var upgrader = websocket.Upgrader{
 }
 
 type Ready struct {
-	Me          facechat.User   `json:"me"` // TODO: add pubsub mutate events
-	JoinedRooms []facechat.Room `json:"joined_rooms"`
+	Me           facechat.User   `json:"me"` // TODO: add pubsub mutate events
+	PublicRooms  []facechat.Room `json:"public_rooms"`
+	PrivateRooms []facechat.Room `json:"private_rooms"`
 }
 
 type Client struct {
