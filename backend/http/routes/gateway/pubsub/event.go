@@ -3,6 +3,7 @@ package pubsub
 import (
 	"encoding/json"
 	"reflect"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -27,5 +28,6 @@ func NewEvent(v interface{}) (Event, error) {
 }
 
 func typeName(v interface{}) string {
-	return reflect.TypeOf(v).String()
+	parts := strings.Split(reflect.TypeOf(v).String(), ".")
+	return parts[len(parts)-1]
 }

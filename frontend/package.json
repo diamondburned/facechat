@@ -23,6 +23,7 @@
 		"webpack-dev-server": "^3.3.1"
 	},
 	"dependencies": {
+		"browser-cookies": "^1.2.0",
 		"escape-html": "^1.0.3",
 		"marked": "^1.1.1",
 		"navaid": "^1.0.5",
@@ -49,7 +50,10 @@
 		"rules": {
 			"indent": [
 				"error",
-				"tab"
+				"tab",
+				{
+					"SwitchCase": 1
+				}
 			],
 			"linebreak-style": [
 				"error",

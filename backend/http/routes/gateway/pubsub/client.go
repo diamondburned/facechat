@@ -14,12 +14,6 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 4096,
 }
 
-type Ready struct {
-	Me           facechat.User   `json:"me"` // TODO: add pubsub mutate events
-	PublicRooms  []facechat.Room `json:"public_rooms"`
-	PrivateRooms []facechat.Room `json:"private_rooms"`
-}
-
 type Client struct {
 	UserID facechat.ID
 	Events chan interface{}

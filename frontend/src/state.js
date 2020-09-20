@@ -3,6 +3,7 @@ export class State {
 		this.me = {}
 		this.roomID = 0
 		this.rooms = {}
+		this.privateRooms = {}
 		this.roomMessages = {} // map[id][]Messages
 		this.users = {}
 	}
